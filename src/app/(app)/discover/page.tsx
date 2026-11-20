@@ -11,6 +11,9 @@ import { cn, initials } from "@/lib/utils";
 import { discoverSearchSchema } from "@/lib/validation";
 import { getCurrentUser } from "@/server/auth/session";
 import { listFilms, savedFilmIds, topDirectors } from "@/server/queries/films";
+import { searchChannels, searchPeople } from "@/server/queries/people";
+import { ChannelCard, PersonResult } from "@/components/people/people-ui";
+import { TopPerson } from "@/components/people/top-person";
 
 export const metadata: Metadata = { title: "Discover" };
 
@@ -39,6 +42,16 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
     filtering ? Promise.resolve([]) : topDirectors(),
     savedFilmIds(user?.id),
   ]);
+  const [people, channels] = filters.q ? await Promise.all([searchPeople(filters.q, 6), searchChannels(filters.q, 6)]) : [[], []];
+  // A name search puts that person's profile right under the search box.
+  const query = filters.q?.trim().toLowerCase() ?? "";
+  const topPerson =
+    query.length >= 3
+      ? people.find((p) => {
+          const name = p.name.toLowerCase();
+          return name.startsWith(query) || name.includes(` ${query}`); // the query starts a word of their name
+        })
+      : undefined;
 
   // The deck follows your search: swipe through the matches, or the top films when nothing is filtered.
   const deck = filtering && results.length ? results.slice(0, 12) : featured;
@@ -62,6 +75,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
               </p>
             </div>
             <SearchPill defaultValue={filters.q} keep={{ genre: filters.genre, industry: filters.industry, language: filters.language }} className="max-w-2xl" />
+            {topPerson && <TopPerson person={topPerson} />}
           </div>
         }
       />
@@ -86,6 +100,38 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
             </Link>
           ))}
         </nav>
+
+        {people.length > 0 && (
+          <section aria-labelledby="people-results" className="flex flex-col gap-5">
+            <SectionHeading
+              title={<span id="people-results">{people.length === 1 ? "1 person" : `${people.length} people`}</span>}
+              subtitle="Actors and directors: profiles, YouTube and socials"
+              href={`/people?q=${encodeURIComponent(filters.q ?? "")}`}
+              linkLabel="All people"
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              {people.map((p) => (
+                <PersonResult key={p.id} person={p} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {channels.length > 0 && (
+          <section aria-labelledby="channel-results" className="flex flex-col gap-5">
+            <SectionHeading
+              title={<span id="channel-results">Watch on YouTube</span>}
+              subtitle="Channels that publish Nollywood movies"
+              href={`/channels?q=${encodeURIComponent(filters.q ?? "")}`}
+              linkLabel="All channels"
+            />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {channels.map((c) => (
+                <ChannelCard key={c.id} channel={c} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {filtering ? (
           <section aria-labelledby="results" className="flex flex-col gap-5">

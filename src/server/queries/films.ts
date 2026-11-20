@@ -45,7 +45,7 @@ type SummaryRow = { film: Film; avg: number | null; total: number | null; review
 const CACHE_TTL_MS = process.env.NODE_ENV === "production" ? 60_000 : 0;
 const cache = new Map<string, { at: number; value: Promise<unknown> }>();
 
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+export function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   if (!CACHE_TTL_MS) return load();
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value as Promise<T>;

@@ -1,3 +1,5 @@
+import { sql } from "drizzle-orm";
+import { CHANNELS } from "../src/server/db/channel-data";
 import { CINEMA_BRANCHES } from "../src/server/db/cinema-data";
 import { FEATURED_FILMS } from "../src/server/tmdb/featured";
 import { importFromTmdb } from "../src/server/tmdb/import";
@@ -14,6 +16,16 @@ async function main() {
     console.error("TMDB_API_KEY is not set. Add it to .env.local (https://www.themoviedb.org/settings/api).");
     process.exit(1);
   }
+
+  // Hand-checked channels first, so trailer channels with the same URL keep these details.
+  for (const [priority, c] of CHANNELS.entries()) {
+    const values = { ...c, featured: c.featured ?? false, priority };
+    await db
+      .insert(schema.channels)
+      .values(values)
+      .onConflictDoUpdate({ target: schema.channels.url, set: { ...values, slug: sql`slug` } });
+  }
+  console.log(`YouTube directory: ${CHANNELS.length} hand-checked channels.`);
 
   await importFromTmdb(db, { apiKey, log: console.log, curated: FEATURED_FILMS });
   await db.insert(schema.cinemas).values(CINEMA_BRANCHES).onConflictDoNothing();

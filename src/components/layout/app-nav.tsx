@@ -15,6 +15,8 @@ const TABS: { label: string; href: string; icon: IconName; match: (p: string) =>
   { label: "Discover", href: "/discover", icon: "search", match: (p) => p.startsWith("/discover") || p.startsWith("/films") },
   { label: "Upload", href: "/upload", icon: "upload", match: (p) => p.startsWith("/upload") },
   { label: "Reviews", href: "/reviews", icon: "reviews", match: (p) => p.startsWith("/reviews") },
+  { label: "People", href: "/people", icon: "profile", match: (p) => p.startsWith("/people") },
+  { label: "YouTube", href: "/channels", icon: "play", match: (p) => p.startsWith("/channels") },
   { label: "Cinemas", href: "/cinemas", icon: "cinema", match: (p) => p.startsWith("/cinemas") },
   { label: "Profile", href: "/profile", icon: "profile", match: (p) => p.startsWith("/profile") || p.startsWith("/u/") },
 ];
@@ -137,10 +139,10 @@ function AccountMenu({ user }: { user: NavUser }) {
 /** Top bar on tablet/desktop; flat bottom tab bar on phones. */
 export function AppNav({ user }: { user: NavUser }) {
   const pathname = usePathname();
-  const desktopTabs = TABS.filter((t) => ["Home", "Discover", "Cinemas", "Reviews"].includes(t.label));
-  // Phones keep five tabs; Cinemas is reachable from Home and Discover.
+  const desktopTabs = TABS.filter((t) => ["Home", "Discover", "People", "YouTube", "Cinemas", "Reviews"].includes(t.label));
+  // Phones keep five tabs; Cinemas, People and YouTube are reachable from Home, Discover and search.
   // Signed out, the last tab is "Log in" so signing in is always one tap away.
-  const mobileTabs = TABS.filter((t) => t.label !== "Cinemas").map((t) =>
+  const mobileTabs = TABS.filter((t) => !["Cinemas", "People", "YouTube"].includes(t.label)).map((t) =>
     t.label === "Profile" && !user ? { ...t, label: "Log in", href: "/login", match: (p: string) => p.startsWith("/login") } : t,
   );
 
@@ -160,6 +162,8 @@ export function AppNav({ user }: { user: NavUser }) {
                   className={cn(
                     "rounded-full px-4 py-2.5 text-[15px] transition hover:bg-field",
                     active ? "font-semibold text-ink" : "text-sub hover:text-ink",
+                    // Tablets don't have room for six tabs; People and YouTube stay one tap away on Home and in search.
+                    (tab.label === "People" || tab.label === "YouTube") && "hidden xl:inline-block",
                   )}
                 >
                   {tab.label}

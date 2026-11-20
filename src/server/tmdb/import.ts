@@ -3,7 +3,9 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { GENRES, MAX_GENRES_PER_FILM, POSTER_GRADIENTS } from "../../lib/constants";
 import { pickByKey, slugify } from "../../lib/utils";
 import * as schema from "../db/schema";
+import { fetchYouTubeDetails } from "../youtube-oembed";
 import { mapLimit, pickTrailer, TmdbClient, type TmdbListMovie, type TmdbMovieDetail } from "./client";
+import { importPeople, type Credit } from "./people";
 
 /**
  * Imports Nollywood and wider African cinema from TMDB:
@@ -146,10 +148,20 @@ export async function importFromTmdb(
   const ids = [...candidates.keys()];
   const details = await mapLimit(ids, 6, (id) => tmdb.movie(id).catch(() => null));
 
+  // Which YouTube channel posted each trailer (names the studio/producer channel).
+  const trailerOf = (d: TmdbMovieDetail | null) => (d ? pickTrailer(d.videos?.results) : null);
+  const channelByKey = new Map(
+    await mapLimit(details, 6, async (d) => {
+      const key = trailerOf(d)?.key;
+      return [key ?? "", key ? await fetchYouTubeDetails(key, 8000) : null] as const;
+    }),
+  );
+
   // Reset now-playing; this import's list is the source of truth.
   await db.update(schema.films).set({ nowPlaying: false }).where(isNotNull(schema.films.tmdbId));
 
   const imported: ImportedFilm[] = [];
+  const credits: Credit[] = [];
   let skipped = 0;
 
   for (const [i, detail] of details.entries()) {
@@ -171,7 +183,8 @@ export async function importFromTmdb(
       [...(list ?? [])].sort((a, b) => a.display_priority - b.display_priority);
     const streams = byPriority(ngProviders?.flatrate);
     const directors = detail.credits.crew.filter((c) => c.job === "Director").map((c) => c.name);
-    const trailer = pickTrailer(detail.videos?.results);
+    const trailer = trailerOf(detail);
+    const channel = trailer ? channelByKey.get(trailer.key) : null;
 
     const values = {
       title,
@@ -198,6 +211,8 @@ export async function importFromTmdb(
       trailerType: trailer?.type ?? null,
       trailerOfficial: trailer ? trailer.official : null,
       trailerPublishedAt: trailer?.published_at ?? null,
+      trailerChannel: channel?.channel ?? null,
+      trailerChannelUrl: channel?.channelUrl ?? null,
       ...(hint.curated?.badge !== undefined ? { badge: hint.curated.badge } : {}),
       ...(hint.curated?.boxOfficeRank !== undefined ? { boxOfficeRank: hint.curated.boxOfficeRank } : {}),
     };
@@ -257,6 +272,15 @@ export async function importFromTmdb(
     );
     if (providerRows.length) await db.insert(schema.filmProviders).values(providerRows).onConflictDoNothing();
 
+    const cast = [...detail.credits.cast].sort((a, b) => a.order - b.order).slice(0, 8);
+    cast.forEach((c, position) =>
+      credits.push({ filmId, tmdbPersonId: c.id, role: "cast", character: c.character?.trim() || null, position }),
+    );
+    detail.credits.crew
+      .filter((c) => c.job === "Director")
+      .slice(0, 2)
+      .forEach((c, position) => credits.push({ filmId, tmdbPersonId: c.id, role: "director", character: null, position }));
+
     imported.push({ id: filmId, slug, title, tmdbRating: values.tmdbRating, tmdbVotes: detail.vote_count });
   }
 
@@ -265,5 +289,24 @@ export async function importFromTmdb(
     .from(schema.films)
     .where(and(eq(schema.films.nowPlaying, true), isNotNull(schema.films.tmdbId)));
   log(`Imported ${imported.length} films (${skipped} skipped, ${nowPlaying[0]?.n ?? 0} in Nigerian cinemas now).`);
+
+  // Channels that posted our trailers join the YouTube directory (hand-checked entries keep their details).
+  const trailerChannels = new Map<string, string>();
+  for (const v of channelByKey.values()) if (v?.channel && v.channelUrl) trailerChannels.set(v.channelUrl, v.channel);
+  const known = await db.select({ url: schema.channels.url, slug: schema.channels.slug }).from(schema.channels);
+  const urls = new Set(known.map((c) => c.url));
+  const slugs = new Set(known.map((c) => c.slug));
+  for (const [url, name] of trailerChannels) {
+    if (urls.has(url)) continue;
+    const base = slugify(name) || "channel";
+    let slug = base;
+    for (let n = 2; slugs.has(slug); n++) slug = `${base}-${n}`;
+    slugs.add(slug);
+    await db.insert(schema.channels).values({ url, name, slug, kind: "trailers" }).onConflictDoNothing();
+  }
+  log(`YouTube: ${trailerChannels.size} trailer channels.`);
+
+  log(`Fetching cast and director profiles …`);
+  await importPeople(db, tmdb, credits, log);
   return imported;
 }

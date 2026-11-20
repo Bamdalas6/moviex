@@ -87,6 +87,9 @@ export const films = sqliteTable(
     trailerType: text("trailer_type"),
     trailerOfficial: integer("trailer_official", { mode: "boolean" }),
     trailerPublishedAt: text("trailer_published_at"),
+    /** YouTube channel that published the trailer (from YouTube oEmbed). */
+    trailerChannel: text("trailer_channel"),
+    trailerChannelUrl: text("trailer_channel_url"),
     posterGradient: text("poster_gradient").notNull(),
     posterSpoiler: integer("poster_spoiler", { mode: "boolean" }).notNull().default(false),
     allowReviews: integer("allow_reviews", { mode: "boolean" }).notNull().default(true),
@@ -227,6 +230,84 @@ export const watchlist = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.filmId] })],
 );
 
+/**
+ * Actors and directors credited on imported films. Identity, photo and dates
+ * come from TMDB; the bio and public social accounts come from Wikipedia and
+ * Wikidata (falling back to TMDB's external ids). Only public profiles are
+ * stored: never private contact details.
+ */
+export const people = sqliteTable(
+  "people",
+  {
+    id: id(),
+    tmdbId: integer("tmdb_id").notNull(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    knownFor: text("known_for"),
+    /** Short Wikidata description, e.g. "Nigerian actress and film producer". */
+    headline: text("headline"),
+    biography: text("biography"),
+    bioSource: text("bio_source", { enum: ["wikipedia", "tmdb"] }),
+    wikipediaUrl: text("wikipedia_url"),
+    tmdbProfilePath: text("tmdb_profile_path"),
+    /** Wikimedia Commons photo when TMDB has none. */
+    photoUrl: text("photo_url"),
+    birthday: text("birthday"),
+    placeOfBirth: text("place_of_birth"),
+    instagram: text("instagram"),
+    x: text("x"),
+    facebook: text("facebook"),
+    tiktok: text("tiktok"),
+    /** YouTube channel id (UC…) or full channel URL. */
+    youtube: text("youtube"),
+    website: text("website"),
+    imdbId: text("imdb_id"),
+    popularity: real("popularity").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => [uniqueIndex("people_tmdb_idx").on(t.tmdbId), uniqueIndex("people_slug_idx").on(t.slug), index("people_name_idx").on(t.name)],
+);
+
+export const filmPeople = sqliteTable(
+  "film_people",
+  {
+    filmId: text("film_id")
+      .notNull()
+      .references(() => films.id, { onDelete: "cascade" }),
+    personId: text("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["cast", "director"] }).notNull(),
+    character: text("character"),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.filmId, t.personId, t.role] }), index("film_people_person_idx").on(t.personId)],
+);
+
+/**
+ * YouTube channels where Nollywood films are published: a hand-checked list of
+ * well-known channels plus the channels that posted our films' trailers.
+ */
+export const channels = sqliteTable(
+  "youtube_channels",
+  {
+    id: id(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    description: text("description"),
+    language: text("language"),
+    kind: text("kind", { enum: ["network", "creator", "studio", "trailers"] }).notNull(),
+    featured: integer("featured", { mode: "boolean" }).notNull().default(false),
+    /** Lower comes first in listings. */
+    priority: integer("priority").notNull().default(100),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("channels_slug_idx").on(t.slug), uniqueIndex("channels_url_idx").on(t.url)],
+);
+
 // ---------------------------------------------------------------------------
 // Relations (used by the relational query API)
 // ---------------------------------------------------------------------------
@@ -258,4 +339,6 @@ export const helpfulVotesRelations = relations(helpfulVotes, ({ one }) => ({
 
 export type User = typeof users.$inferSelect;
 export type Film = typeof films.$inferSelect;
+export type Person = typeof people.$inferSelect;
+export type Channel = typeof channels.$inferSelect;
 export type Rating = typeof ratings.$inferSelect;

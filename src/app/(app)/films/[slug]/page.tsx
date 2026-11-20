@@ -18,6 +18,8 @@ import { getCurrentUser } from "@/server/auth/session";
 import { getFilmDetail, listCinemas } from "@/server/queries/films";
 import { WhereToWatch } from "@/components/film/where-to-watch";
 import { filmReviews } from "@/server/queries/reviews";
+import { filmCredits } from "@/server/queries/people";
+import { PersonPhoto } from "@/components/people/people-ui";
 
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{ sort?: string }>;
@@ -49,10 +51,13 @@ export default async function FilmPage({ params, searchParams }: { params: Param
   if (!film) notFound();
 
   const sort = sortParam === "recent" ? "recent" : "helpful";
-  const [reviews, cinemaList] = await Promise.all([
+  const [reviews, cinemaList, credits] = await Promise.all([
     filmReviews(film.id, user?.id, sort),
     film.nowPlaying ? listCinemas() : Promise.resolve([]),
+    filmCredits(film.id),
   ]);
+  const castCredits = credits.filter((c) => c.role === "cast");
+  const directorCredits = credits.filter((c) => c.role === "director");
   const pending = film.status !== "published";
   const canReview = film.allowReviews && !pending;
   const meta = [film.year, film.genres.join(", "), formatRuntime(film.runtimeMinutes), film.language].filter(Boolean).join(" · ");
@@ -185,9 +190,20 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                 <div>
                   <dt className="text-[14px] text-sub">Director</dt>
                   <dd className="text-[15px] font-semibold">
-                    <Link href={`/discover?q=${encodeURIComponent(film.director)}`} className="hover:underline">
-                      {film.director}
-                    </Link>
+                    {directorCredits.length ? (
+                      directorCredits.map((d, i) => (
+                        <span key={d.slug}>
+                          {i > 0 && " & "}
+                          <Link href={`/people/${d.slug}`} className="underline-offset-4 hover:underline">
+                            {d.name}
+                          </Link>
+                        </span>
+                      ))
+                    ) : (
+                      <Link href={`/discover?q=${encodeURIComponent(film.director)}`} className="hover:underline">
+                        {film.director}
+                      </Link>
+                    )}
                   </dd>
                 </div>
               )}
@@ -196,7 +212,24 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                 <dd className="text-[15px] font-semibold">{film.industry}</dd>
               </div>
             </dl>
-            {film.cast.length > 0 && (
+            {castCredits.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <h3 className="text-[14px] text-sub">Starring · tap a name for their profile, YouTube and socials</h3>
+                <ul className="scrollbar-none -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0" aria-label="Cast">
+                  {castCredits.map((c) => (
+                    <li key={c.slug} className="w-[92px] shrink-0">
+                      <Link href={`/people/${c.slug}`} className="group flex flex-col items-center gap-2 text-center">
+                        <span className="transition duration-300 group-hover:-translate-y-1 group-hover:scale-105">
+                          <PersonPhoto name={c.name} photoUrl={c.photoUrl} size={72} className="shadow-card" />
+                        </span>
+                        <span className="line-clamp-2 text-[13.5px] leading-tight font-semibold group-hover:underline">{c.name}</span>
+                        {c.character && <span className="line-clamp-1 text-[12px] text-sub">{c.character}</span>}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : film.cast.length > 0 && (
               <div className="flex flex-col gap-3">
                 <h3 className="text-[14px] text-sub">Starring</h3>
                 <ul className="flex flex-wrap gap-2" aria-label="Cast">

@@ -36,12 +36,32 @@ export type TmdbMovieDetail = {
   spoken_languages: { iso_639_1: string; english_name: string }[];
   genres: { id: number; name: string }[];
   credits: {
-    cast: { name: string; order: number }[];
-    crew: { name: string; job: string }[];
+    cast: { id: number; name: string; order: number; character?: string | null }[];
+    crew: { id: number; name: string; job: string }[];
   };
   videos?: { results: TmdbVideo[] };
   "watch/providers"?: {
     results: Record<string, { link?: string; flatrate?: Provider[]; rent?: Provider[]; buy?: Provider[] } | undefined>;
+  };
+};
+
+export type TmdbPerson = {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string | null;
+  popularity: number;
+  external_ids?: {
+    imdb_id: string | null;
+    wikidata_id: string | null;
+    facebook_id: string | null;
+    instagram_id: string | null;
+    tiktok_id: string | null;
+    twitter_id: string | null;
+    youtube_id: string | null;
   };
 };
 
@@ -104,9 +124,13 @@ export class TmdbClient {
   movie(id: number) {
     return this.get<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "credits,watch/providers,videos" });
   }
+
+  person(id: number) {
+    return this.get<TmdbPerson>(`/person/${id}`, { append_to_response: "external_ids" });
+  }
 }
 
-export function tmdbImage(path: string | null | undefined, size: "w92" | "w185" | "w342" | "w500" | "w780" = "w500") {
+export function tmdbImage(path: string | null | undefined, size: "w92" | "w185" | "w342" | "w500" | "w780" | "h632" = "w500") {
   return path ? `${TMDB_IMAGE_BASE}/${size}${path}` : null;
 }
 

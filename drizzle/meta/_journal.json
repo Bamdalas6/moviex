@@ -29,6 +29,13 @@
       "when": 1795213067911,
       "tag": "0003_trailer_details",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795214556751,
+      "tag": "0004_people_and_channels",
+      "breakpoints": true
     }
   ]
 }

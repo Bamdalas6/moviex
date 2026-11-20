@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "image.tmdb.org", pathname: "/t/p/**" },
       { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
+      // Actor photos from Wikimedia Commons (via Wikipedia) when TMDB has none.
+      { protocol: "https", hostname: "upload.wikimedia.org" },
+      { protocol: "https", hostname: "thumb.wikimedia.org" },
     ],
   },
   experimental: {

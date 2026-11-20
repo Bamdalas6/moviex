@@ -13,6 +13,8 @@ import { formatNumber } from "@/lib/utils";
 import { getCurrentUser } from "@/server/auth/session";
 import { listFilms, ratingActivity, savedFilmIds } from "@/server/queries/films";
 import { reviewFeed } from "@/server/queries/reviews";
+import { listChannels, popularPeople } from "@/server/queries/people";
+import { ChannelCard, PersonCard } from "@/components/people/people-ui";
 
 type SearchParams = Promise<{ genre?: string }>;
 
@@ -38,6 +40,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     genre ? Promise.resolve([]) : reviewFeed({ viewerId: user?.id, feed: "latest", stars: "all", limit: 3 }),
     savedFilmIds(user?.id),
   ]);
+  const [channels, faces] = genre ? [[], []] : await Promise.all([listChannels().then((all) => all.filter((c) => c.featured).slice(0, 6)), popularPeople(12)]);
 
   const ctx = { savedIds, signedIn: Boolean(user), returnTo: genre ? `/?genre=${genre}` : "/" };
   const label = genre ? genre.toLowerCase() : null;
@@ -118,6 +121,28 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
               <FilmCard key={film.id} film={film} ctx={ctx} />
             ))}
           </FilmRail>
+        </section>
+      )}
+
+      {faces.length > 0 && (
+        <section className="flex flex-col gap-5">
+          <SectionHeading title="Faces of Nollywood" subtitle="Profiles, films, YouTube and socials" href="/people" linkLabel="All people" />
+          <div className="scrollbar-none -mx-5 flex gap-1 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-6 md:px-0">
+            {faces.map((p) => (
+              <PersonCard key={p.id} person={p} className="w-[132px] shrink-0 md:w-auto" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {channels.length > 0 && (
+        <section className="flex flex-col gap-5">
+          <SectionHeading title="Nollywood on YouTube" subtitle="Channels with full Nigerian movies, free to watch" href="/channels" linkLabel="All channels" />
+          <div className="scrollbar-none -mx-5 flex snap-x gap-4 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-3 md:px-0">
+            {channels.map((c) => (
+              <ChannelCard key={c.id} channel={c} className="w-[80%] shrink-0 snap-start sm:w-[46%] md:w-auto" />
+            ))}
+          </div>
         </section>
       )}
 
