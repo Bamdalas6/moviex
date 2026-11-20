@@ -15,10 +15,14 @@
   // To enable: create the bucket (`npx wrangler r2 bucket create moviex-posters`), then uncomment:
   // "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "moviex-posters" }],
 
-  // Non-secret settings. Secrets (DATABASE_URL, DATABASE_AUTH_TOKEN) are set in the dashboard
-  // (Worker → Settings → Variables and Secrets) or with `npx wrangler secret put …` — never in this file.
+  // Non-secret settings live here so every deploy has them. The database token is a SECRET:
+  // Worker → Settings → Variables and Secrets → Add → type "Secret" → DATABASE_AUTH_TOKEN
+  // (or `npx wrangler secret put DATABASE_AUTH_TOKEN`) — never put it in this file.
   "vars": {
+    "DATABASE_URL": "libsql://moviex-bamdalas.aws-ap-northeast-1.turso.io",
     "PASSWORD_ITERATIONS": "20000"
   },
+  // Don't delete variables added in the dashboard when deploying (deploys used to wipe them).
+  "keep_vars": true,
   "observability": { "enabled": true }
 }
