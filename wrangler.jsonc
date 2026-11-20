@@ -19,12 +19,12 @@
   // Worker → Settings → Variables and Secrets → Add → type "Secret" → DATABASE_AUTH_TOKEN
   // (or `npx wrangler secret put DATABASE_AUTH_TOKEN`) — never put it in this file.
   "vars": {
-    "DATABASE_URL": "libsql://moviex-bamdalas.aws-ap-northeast-1.turso.io",
+    "DATABASE_URL": "libsql://moviex-eu-bamdalas.aws-eu-central-1.turso.io",
     "PASSWORD_ITERATIONS": "20000"
   },
   // Don't delete variables added in the dashboard when deploying (deploys used to wipe them).
   "keep_vars": true,
-  // Run the Worker close to the database (Turso, Tokyo) instead of close to each visitor:
+  // Run the Worker close to the database (Turso, Frankfurt) instead of close to each visitor:
   // a page makes several DB queries but only one round trip to the browser, so this cuts latency a lot.
   "placement": { "mode": "smart" },
   "observability": { "enabled": true }
