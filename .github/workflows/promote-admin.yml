@@ -1,0 +1,31 @@
+# Promotes an existing account on the live site to admin (moderation queue access).
+# Sign up on the site first with your own password, then run this from the Actions tab
+# with that account's email. Uses the DATABASE_URL / DATABASE_AUTH_TOKEN repository secrets.
+name: Make a user an admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: Email of an existing account to make an admin
+        required: true
+        type: string
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Promote to admin
+        run: npm run db:create-admin
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+          # Passed through env (not interpolated into the script) so the input can't inject commands.
+          ADMIN_EMAIL: ${{ inputs.email }}

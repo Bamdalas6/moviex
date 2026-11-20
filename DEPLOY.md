@@ -45,7 +45,8 @@ site works; only poster uploads are disabled.
 
    Do **not** run `db:seed` against production — it wipes data and creates demo accounts with a public password.
 
-5. Create your admin account (for the moderation queue):
+5. Create your admin account (for the moderation queue). Easiest: sign up on the live site with your own
+   password, then on GitHub run **Actions → Make a user an admin** with that email. Or from your computer:
 
    ```powershell
    $env:ADMIN_EMAIL = "you@example.com"; $env:ADMIN_NAME = "Your Name"; $env:ADMIN_PASSWORD = "<12+ characters>"
