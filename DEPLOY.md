@@ -52,19 +52,23 @@ site works; only poster uploads are disabled.
    npm.cmd run db:create-admin
    ```
 
-## 2. Create the R2 bucket
+## 2. (Optional) Poster uploads with R2
 
-In the Cloudflare dashboard: **R2 → Create bucket → `moviex-posters`**, or run
-`npx wrangler r2 bucket create moviex-posters` after `npx wrangler login`.
+The site deploys without R2; only community poster uploads are disabled. To enable them:
+**R2 → Create bucket → `moviex-posters`** (or `npx wrangler r2 bucket create moviex-posters`), then
+uncomment the `r2_buckets` line in `wrangler.jsonc` and push. Don't uncomment it before the bucket
+exists — a missing bucket makes every deploy fail.
 
 ## 3. Connect the GitHub repo to Cloudflare
 
-1. Dashboard → **Workers & Pages → Create → Import a repository** → pick `Bamdalas6/moviex`.
-2. Build settings:
-   - **Build command:** `npx opennextjs-cloudflare build`
-   - **Deploy command:** `npx opennextjs-cloudflare deploy`
-   - Project name must match `name` in `wrangler.jsonc` (`moviex`).
-3. Save. The first build may fail until the secrets below exist — that's expected.
+1. Dashboard → **Workers & Pages → Create → Workers → Import a repository** → pick `Bamdalas6/moviex`.
+   (Choose **Workers**, not **Pages** — Pages can't run this app.)
+2. Settings:
+   - **Project name:** `moviex` — must match `name` in `wrangler.jsonc`.
+   - **Build command:** leave empty.
+   - **Deploy command:** `npx wrangler deploy` (it builds the Worker itself via `build.command` in `wrangler.jsonc`).
+   - **Root directory:** `/`
+3. Save and deploy. The site will show an error page until the secrets below exist — that's expected.
 
 ## 4. Add the secrets
 
@@ -80,8 +84,21 @@ Then **Deployments → Retry** (or push a commit). Your site is live at
 
 ## 5. Check it
 
-- `https://…/api/health` should return `{"status":"ok"}` (database reachable).
+- `https://…/api/health` should return `{"status":"ok"}` (database reachable). If not, its `message`
+  says what's wrong (e.g. the `DATABASE_URL` secret is missing).
 - Log in with the admin account from step 1.5 and open **/admin**.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Deploy fails: *R2 bucket … not found* / *enable R2* | Comment out `r2_buckets` in `wrangler.jsonc` (see step 2). |
+| Deploy fails: *name … does not match* | Project name in Cloudflare must be `moviex`, or change `name` in `wrangler.jsonc`. |
+| Deploy fails: *Could not find .open-next/worker.js* | Deploy command must be `npx wrangler deploy` with the `build` block present in `wrangler.jsonc`. |
+| Site shows an error / health says *DATABASE_URL is not set* | Add both secrets (step 4), then **Retry deployment**. |
+| Health says *401* / *unauthorized* | The Turso token is wrong or expired — create a new one and update the secret. |
+| Pages work but lists are empty | Run `db:migrate` and `db:import-tmdb` against Turso (step 1.4). |
+| "Exceeded CPU" in Worker logs | Free-plan limit; the $5 Workers Paid plan removes it. |
 
 ## 6. Keep "In cinemas now" fresh
 

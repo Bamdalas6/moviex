@@ -1,18 +1,25 @@
 {
-  // Cloudflare Workers config for the OpenNext build (`npm run cf:deploy`).
+  // Cloudflare Workers config for the OpenNext build.
+  // Deploy with `npx wrangler deploy` — the `build` step below turns the Next.js app into a Worker first,
+  // so Cloudflare's default deploy command works without any custom build command.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "moviex",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "build": {
+    "command": "npx opennextjs-cloudflare build"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // Community poster uploads. Create the bucket first: `npx wrangler r2 bucket create moviex-posters`
-  "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "moviex-posters" }],
-  // Non-secret settings. Secrets (DATABASE_URL, DATABASE_AUTH_TOKEN) are set with
-  // `npx wrangler secret put …` or in the dashboard — never in this file.
+  // Poster uploads (optional). Deploys fail if a bound bucket doesn't exist, so this is off by default.
+  // To enable: create the bucket (`npx wrangler r2 bucket create moviex-posters`), then uncomment:
+  // "r2_buckets": [{ "binding": "POSTERS", "bucket_name": "moviex-posters" }],
+
+  // Non-secret settings. Secrets (DATABASE_URL, DATABASE_AUTH_TOKEN) are set in the dashboard
+  // (Worker → Settings → Variables and Secrets) or with `npx wrangler secret put …` — never in this file.
   "vars": {
     "PASSWORD_ITERATIONS": "20000"
   },

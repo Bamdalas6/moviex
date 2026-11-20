@@ -36,9 +36,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Build with OpenNext
-        run: npx opennextjs-cloudflare build
-      - name: Measure Worker size (dry run, no deploy)
+      # Same path as Cloudflare's default deploy: `wrangler deploy` runs the OpenNext build
+      # (build.command in wrangler.jsonc), then bundles the Worker. --dry-run skips the upload.
+      - name: Build and measure Worker (dry run, no deploy)
         run: |
           npx wrangler deploy --dry-run --outdir .wrangler/dry-run 2>&1 | tee wrangler.log
           gzip_kib=$(grep -oP 'gzip:\s*\K[0-9.]+(?=\s*KiB)' wrangler.log | tail -1)
