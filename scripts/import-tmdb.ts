@@ -1,4 +1,5 @@
 import { CINEMA_BRANCHES } from "../src/server/db/cinema-data";
+import { FEATURED_FILMS } from "../src/server/tmdb/featured";
 import { importFromTmdb } from "../src/server/tmdb/import";
 import { client, db, schema } from "./db";
 
@@ -14,7 +15,7 @@ async function main() {
     process.exit(1);
   }
 
-  await importFromTmdb(db, { apiKey, log: console.log });
+  await importFromTmdb(db, { apiKey, log: console.log, curated: FEATURED_FILMS });
   await db.insert(schema.cinemas).values(CINEMA_BRANCHES).onConflictDoNothing();
   console.log(`Cinema directory: ${CINEMA_BRANCHES.length} branches.`);
   client.close();
