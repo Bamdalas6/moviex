@@ -30,30 +30,40 @@ const summaryColumns = {
   avg: stats.avg,
   total: stats.total,
   reviews: stats.reviews,
+  // Genres come back in the same query (one round trip instead of two per list).
+  genreList: sql<string | null>`(select group_concat(${filmGenres.genre}, '|') from ${filmGenres} where ${filmGenres.filmId} = ${films.id})`,
 };
 
-type SummaryRow = { film: Film; avg: number | null; total: number | null; reviews: number | null };
+type SummaryRow = { film: Film; avg: number | null; total: number | null; reviews: number | null; genreList: string | null };
 
-async function genresFor(filmIds: string[]) {
-  const map = new Map<string, string[]>();
-  if (!filmIds.length) return map;
-  const rows = await db
-    .select()
-    .from(filmGenres)
-    .where(inArray(filmGenres.filmId, filmIds))
-    .orderBy(asc(filmGenres.genre));
-  for (const row of rows) map.set(row.filmId, [...(map.get(row.filmId) ?? []), row.genre]);
-  return map;
+/**
+ * Tiny per-instance cache for public, viewer-independent lists. Each page used to
+ * make several round trips to the database for the same lists on every click;
+ * now repeat requests within the TTL are served from memory. Viewer-specific data
+ * (sessions, "your rating", watchlist hearts) is never cached here.
+ */
+const CACHE_TTL_MS = process.env.NODE_ENV === "production" ? 60_000 : 0;
+const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  if (!CACHE_TTL_MS) return load();
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value as Promise<T>;
+  const value = load();
+  cache.set(key, { at: Date.now(), value });
+  value.catch(() => cache.delete(key)); // never cache failures
+  if (cache.size > 500) cache.delete(cache.keys().next().value!);
+  return value;
 }
 
-function toSummary(row: SummaryRow, genres: string[]): FilmSummary {
+function toSummary(row: SummaryRow): FilmSummary {
   const f = row.film;
   return {
     id: f.id,
     slug: f.slug,
     title: f.title,
     year: f.year,
-    genres,
+    genres: (row.genreList ?? "").split("|").filter(Boolean).sort(),
     director: f.director,
     industry: f.industry,
     language: f.language,
@@ -72,8 +82,7 @@ function toSummary(row: SummaryRow, genres: string[]): FilmSummary {
 }
 
 async function hydrate(rows: SummaryRow[]) {
-  const genres = await genresFor(rows.map((r) => r.film.id));
-  return rows.map((r) => toSummary(r, genres.get(r.film.id) ?? []));
+  return rows.map(toSummary);
 }
 
 export type FilmSort = "trending" | "top" | "recent" | "box-office";
@@ -90,7 +99,11 @@ export type FilmQuery = {
   limit?: number;
 };
 
-export async function listFilms(query: FilmQuery = {}): Promise<FilmSummary[]> {
+export function listFilms(query: FilmQuery = {}): Promise<FilmSummary[]> {
+  return cached(`films:${JSON.stringify(query)}`, () => loadFilms(query));
+}
+
+async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
   const where: SQL[] = [eq(films.status, "published")];
 
   if (query.q) {
@@ -151,11 +164,29 @@ export async function getFilmDetail(slug: string, viewerId?: string): Promise<Fi
 
   const [summary] = await hydrate([row]);
 
-  const distRows = await db
-    .select({ score: ratings.score, n: count() })
-    .from(ratings)
-    .where(eq(ratings.filmId, f.id))
-    .groupBy(ratings.score);
+  // Independent lookups run in parallel — one round trip to the database instead of four.
+  const [distRows, mine, saved, providerRows] = await Promise.all([
+    db.select({ score: ratings.score, n: count() }).from(ratings).where(eq(ratings.filmId, f.id)).groupBy(ratings.score),
+    viewerId
+      ? db
+          .select({ score: ratings.score, body: ratings.body })
+          .from(ratings)
+          .where(and(eq(ratings.filmId, f.id), eq(ratings.userId, viewerId)))
+          .limit(1)
+      : Promise.resolve([]),
+    viewerId
+      ? db
+          .select({ filmId: watchlist.filmId })
+          .from(watchlist)
+          .where(and(eq(watchlist.filmId, f.id), eq(watchlist.userId, viewerId)))
+          .limit(1)
+      : Promise.resolve([]),
+    db
+      .select({ kind: filmProviders.kind, name: filmProviders.name, logoPath: filmProviders.logoPath })
+      .from(filmProviders)
+      .where(eq(filmProviders.filmId, f.id))
+      .orderBy(asc(filmProviders.priority)),
+  ]);
 
   const total = distRows.reduce((sum, r) => sum + r.n, 0);
   const distribution = [5, 4, 3, 2, 1].map((score) => {
@@ -163,26 +194,9 @@ export async function getFilmDetail(slug: string, viewerId?: string): Promise<Fi
     return { score, count: n, percent: total ? Math.round((n / total) * 100) : 0 };
   });
 
-  let viewer: FilmDetail["viewer"] = null;
-  if (viewerId) {
-    const [mine] = await db
-      .select({ score: ratings.score, body: ratings.body })
-      .from(ratings)
-      .where(and(eq(ratings.filmId, f.id), eq(ratings.userId, viewerId)))
-      .limit(1);
-    const [saved] = await db
-      .select({ filmId: watchlist.filmId })
-      .from(watchlist)
-      .where(and(eq(watchlist.filmId, f.id), eq(watchlist.userId, viewerId)))
-      .limit(1);
-    viewer = { score: mine?.score ?? null, hasReview: Boolean(mine?.body), saved: Boolean(saved) };
-  }
-
-  const providerRows = await db
-    .select({ kind: filmProviders.kind, name: filmProviders.name, logoPath: filmProviders.logoPath })
-    .from(filmProviders)
-    .where(eq(filmProviders.filmId, f.id))
-    .orderBy(asc(filmProviders.priority));
+  const viewer: FilmDetail["viewer"] = viewerId
+    ? { score: mine[0]?.score ?? null, hasReview: Boolean(mine[0]?.body), saved: Boolean(saved[0]) }
+    : null;
 
   return {
     ...summary!,
@@ -213,44 +227,53 @@ export async function getFilmForReview(slug: string) {
       posterSpoiler: films.posterSpoiler,
       allowReviews: films.allowReviews,
       status: films.status,
+      genreList: summaryColumns.genreList,
     })
     .from(films)
     .where(eq(films.slug, slug))
     .limit(1);
   if (!film || film.status !== "published") return null;
-  const genres = await genresFor([film.id]);
-  return { ...film, posterUrl: resolvePoster(film.posterKey, film.tmdbPosterPath), genres: genres.get(film.id) ?? [] };
+  const { genreList, ...rest } = film;
+  return {
+    ...rest,
+    posterUrl: resolvePoster(film.posterKey, film.tmdbPosterPath),
+    genres: (genreList ?? "").split("|").filter(Boolean).sort(),
+  };
 }
 
-export async function genreCounts() {
-  const rows = await db
-    .select({ genre: filmGenres.genre, n: count() })
-    .from(filmGenres)
-    .innerJoin(films, eq(films.id, filmGenres.filmId))
-    .where(eq(films.status, "published"))
-    .groupBy(filmGenres.genre);
-  return new Map(rows.map((r) => [r.genre, r.n]));
+export function genreCounts() {
+  return cached("genre-counts", async () => {
+    const rows = await db
+      .select({ genre: filmGenres.genre, n: count() })
+      .from(filmGenres)
+      .innerJoin(films, eq(films.id, filmGenres.filmId))
+      .where(eq(films.status, "published"))
+      .groupBy(filmGenres.genre);
+    return new Map(rows.map((r) => [r.genre, r.n]));
+  });
 }
 
+/** Directors with the most films, each with their best-rated title — computed from one cached list. */
 export async function topDirectors(limit = 8) {
-  const rows = await db
-    .select({ director: films.director, n: count() })
-    .from(films)
-    .where(and(eq(films.status, "published"), isNotNull(films.director)))
-    .groupBy(films.director)
-    .orderBy(desc(count()), asc(films.director))
-    .limit(limit);
-
-  const knownFor = await Promise.all(
-    rows.map(async (r) => {
-      const [best] = await listFilms({ director: r.director!, sort: "top", limit: 1 });
-      return { name: r.director!, films: r.n, knownFor: best?.title ?? null, color: best?.posterGradient ?? null };
-    }),
-  );
-  return knownFor;
+  const all = await listFilms({ sort: "top", limit: 1000 });
+  const byDirector = new Map<string, { films: number; best: FilmSummary }>();
+  for (const film of all) {
+    if (!film.director) continue;
+    const entry = byDirector.get(film.director);
+    if (entry) entry.films += 1;
+    else byDirector.set(film.director, { films: 1, best: film }); // list is best-first
+  }
+  return [...byDirector.entries()]
+    .sort((a, b) => b[1].films - a[1].films || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([name, d]) => ({ name, films: d.films, knownFor: d.best.title, color: d.best.posterGradient }));
 }
 
-export async function ratingActivity() {
+export function ratingActivity() {
+  return cached("rating-activity", loadRatingActivity);
+}
+
+async function loadRatingActivity() {
   const now = Date.now();
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -265,8 +288,10 @@ export async function ratingActivity() {
 }
 
 /** Every cinema branch, ordered for display (chain, then city). */
-export async function listCinemas() {
-  return db.select().from(cinemas).orderBy(asc(cinemas.chain), asc(cinemas.city), asc(cinemas.branch));
+export function listCinemas() {
+  return cached("cinemas", () =>
+    db.select().from(cinemas).orderBy(asc(cinemas.chain), asc(cinemas.city), asc(cinemas.branch)),
+  );
 }
 
 /** Film ids on the viewer's watchlist, for the heart buttons on cards. */

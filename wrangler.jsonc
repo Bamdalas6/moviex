@@ -24,5 +24,8 @@
   },
   // Don't delete variables added in the dashboard when deploying (deploys used to wipe them).
   "keep_vars": true,
+  // Run the Worker close to the database (Turso, Tokyo) instead of close to each visitor:
+  // a page makes several DB queries but only one round trip to the browser, so this cuts latency a lot.
+  "placement": { "mode": "smart" },
   "observability": { "enabled": true }
 }
