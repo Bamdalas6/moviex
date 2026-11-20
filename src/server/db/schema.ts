@@ -83,6 +83,10 @@ export const films = sqliteTable(
     /** Official YouTube trailer (video id) from TMDB's video list. */
     trailerKey: text("trailer_key"),
     trailerName: text("trailer_name"),
+    /** TMDB video type ("Trailer", "Teaser", …), whether it's from the studio, and when it went up. */
+    trailerType: text("trailer_type"),
+    trailerOfficial: integer("trailer_official", { mode: "boolean" }),
+    trailerPublishedAt: text("trailer_published_at"),
     posterGradient: text("poster_gradient").notNull(),
     posterSpoiler: integer("poster_spoiler", { mode: "boolean" }).notNull().default(false),
     allowReviews: integer("allow_reviews", { mode: "boolean" }).notNull().default(true),

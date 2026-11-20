@@ -195,6 +195,9 @@ export async function importFromTmdb(
       watchLink: ngProviders?.link ?? null,
       trailerKey: trailer?.key ?? null,
       trailerName: trailer?.name ?? null,
+      trailerType: trailer?.type ?? null,
+      trailerOfficial: trailer ? trailer.official : null,
+      trailerPublishedAt: trailer?.published_at ?? null,
       ...(hint.curated?.badge !== undefined ? { badge: hint.curated.badge } : {}),
       ...(hint.curated?.boxOfficeRank !== undefined ? { boxOfficeRank: hint.curated.boxOfficeRank } : {}),
     };

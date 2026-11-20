@@ -39,6 +39,8 @@ export type FilmDetail = FilmSummary & {
   uploader: { username: string; name: string; avatarColor: string } | null;
   distribution: { score: number; count: number; percent: number }[];
   watchLink: string | null;
+  /** Details of the YouTube trailer (when trailerKey is set). */
+  trailer: { type: string | null; official: boolean | null; publishedAt: string | null } | null;
   providers: { kind: "stream" | "rent" | "buy"; name: string; logoUrl: string | null }[];
   viewer: { score: number | null; hasReview: boolean; saved: boolean } | null;
 };

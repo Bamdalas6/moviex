@@ -22,6 +22,13 @@
       "when": 1795211766400,
       "tag": "0002_trailers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795213067911,
+      "tag": "0003_trailer_details",
+      "breakpoints": true
     }
   ]
 }

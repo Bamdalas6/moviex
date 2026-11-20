@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Backdrop } from "@/components/film/backdrop";
 import { QuickRate, RatingBars } from "@/components/film/film-widgets";
 import { HeartButton } from "@/components/film/heart-button";
-import { TrailerCard, TrailerTrigger } from "@/components/film/trailer";
+import { TrailerCard, trailerHref } from "@/components/film/trailer";
 import { Tilt } from "@/components/motion/effects";
 import { Icon, StarGlyph } from "@/components/icons";
 import { EmptyState, IconLink, TmdbCredit } from "@/components/layout/page";
@@ -128,16 +128,12 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                 </p>
               )}
               {film.trailerKey && (
-                <TrailerTrigger
-                  videoKey={film.trailerKey}
-                  title={film.title}
-                  className={buttonClass("white", "lg", "mt-3 gap-2.5 pr-6 pl-2")}
-                >
+                <Link href={trailerHref(film.slug)} className={buttonClass("white", "lg", "mt-3 gap-2.5 pr-6 pl-2")}>
                   <span className="play-pulse relative flex size-9 items-center justify-center rounded-full bg-cta text-white">
                     <Icon name="play" size={15} fill="currentColor" stroke="none" className="translate-x-px" />
                   </span>
                   Watch trailer
-                </TrailerTrigger>
+                </Link>
               )}
             </div>
           </div>
@@ -173,7 +169,12 @@ export default async function FilmPage({ params, searchParams }: { params: Param
 
           {film.trailerKey && (
             <Section title="Trailer" className={cn(!film.uploader && "border-t-0")}>
-              <TrailerCard videoKey={film.trailerKey} title={film.trailerName ?? `${film.title} trailer`} subtitle="Plays here · from YouTube" />
+              <TrailerCard
+                slug={film.slug}
+                videoKey={film.trailerKey}
+                title={film.trailerName ?? `${film.title} trailer`}
+                subtitle="Video details, play here or on YouTube"
+              />
             </Section>
           )}
 

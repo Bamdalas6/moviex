@@ -84,7 +84,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
           <div className="scrollbar-none -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-5 px-5 pb-1 md:mx-0 md:grid md:snap-none md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0">
             {trailers.map((film) => (
               <div key={film.id} data-reveal="scale" className="w-[78%] shrink-0 snap-start sm:w-[46%] md:w-auto">
-                <TrailerCard videoKey={film.trailerKey!} title={film.title} subtitle={`${film.year} · ${film.genres.slice(0, 2).join(", ")}`} />
+                <TrailerCard slug={film.slug} videoKey={film.trailerKey!} title={film.title} subtitle={`${film.year} · ${film.genres.slice(0, 2).join(", ")}`} />
               </div>
             ))}
           </div>

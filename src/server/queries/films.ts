@@ -205,6 +205,7 @@ export async function getFilmDetail(slug: string, viewerId?: string): Promise<Fi
   return {
     ...summary!,
     watchLink: f.watchLink,
+    trailer: f.trailerKey ? { type: f.trailerType, official: f.trailerOfficial, publishedAt: f.trailerPublishedAt } : null,
     providers: providerRows.map((p) => ({ kind: p.kind, name: p.name, logoUrl: tmdbImage(p.logoPath, "w92") })),
     cast: f.cast,
     status: f.status,
