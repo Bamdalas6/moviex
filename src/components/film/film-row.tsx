@@ -26,12 +26,12 @@ export function FilmCard({
   className?: string;
 }) {
   return (
-    <div className={cn("group relative min-w-0", className)}>
-      <Link href={`/films/${film.slug}`} className="block rounded-2xl">
+    <div data-reveal className={cn("film-card group relative min-w-0", className)}>
+      <Link href={`/films/${film.slug}`} className="lift block rounded-2xl">
         <Poster
           film={film}
           priority={priority}
-          className="aspect-[2/3] rounded-2xl transition duration-300 group-hover:brightness-95"
+          className="shine aspect-[2/3] rounded-2xl shadow-card transition-shadow duration-300 group-hover:shadow-lift"
           titleClassName="text-lg"
           sizes="(min-width: 1024px) 220px, (min-width: 768px) 25vw, 46vw"
         />
@@ -50,7 +50,7 @@ export function FilmCard({
         <p className="truncate text-[14px] text-sub">{film.director ?? film.language}</p>
       </Link>
       {badge && (
-        <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-[12px] font-semibold text-[#222] shadow-card">
+        <span className="lift pointer-events-none absolute top-3 left-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[12px] font-semibold text-[#222] shadow-card">
           {badge}
         </span>
       )}
@@ -60,7 +60,7 @@ export function FilmCard({
         saved={ctx.savedIds.includes(film.id)}
         signedIn={ctx.signedIn}
         returnTo={ctx.returnTo}
-        className="absolute top-1.5 right-1.5"
+        className="lift absolute top-1.5 right-1.5"
       />
     </div>
   );
@@ -86,7 +86,11 @@ export function FilmRail({ children, className }: { children: React.ReactNode; c
 export function FilmRow({ film, rank, className }: { film: FilmSummary; rank?: number; className?: string }) {
   const meta = [film.year, film.genres.slice(0, 2).join(", "), film.director].filter(Boolean).join(" · ");
   return (
-    <Link href={`/films/${film.slug}`} className={cn("group flex items-center gap-4 py-3 text-ink", className)}>
+    <Link
+      href={`/films/${film.slug}`}
+      data-reveal="left"
+      className={cn("film-card group flex items-center gap-4 rounded-xl py-3 text-ink transition-colors hover:bg-field/70", className)}
+    >
       {rank !== undefined && <span className="w-6 text-center text-lg font-bold text-sub">{rank}</span>}
       <Poster film={film} showTitle={false} className="h-[84px] w-[56px] shrink-0 rounded-xl" sizes="56px" />
       <span className="min-w-0 flex-1">

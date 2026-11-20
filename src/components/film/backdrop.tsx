@@ -21,6 +21,8 @@ export function Backdrop({
 }) {
   return (
     <div aria-hidden="true" className={cn("pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[#111]", className)}>
+      {/* parallax-layer: drifts down slower than the page as you scroll (scroll-driven CSS). */}
+      <div className="parallax-layer absolute inset-0">
       {films.map((film, i) => (
         <div
           key={`${film.title}-${i}`}
@@ -41,6 +43,7 @@ export function Backdrop({
           </div>
         </div>
       ))}
+      </div>
       {/* Darken for legible white text, then dissolve into the page. */}
       <div className="absolute inset-0 bg-black/30" />
       {/* Keep this shorter than the host's bottom padding so it never sits under white text. */}

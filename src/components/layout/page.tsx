@@ -64,7 +64,7 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-end justify-between gap-3", className)}>
+    <div data-reveal="left" className={cn("flex items-end justify-between gap-3", className)}>
       <div>
         <h2 className="text-[22px] leading-tight font-bold tracking-[-0.4px]">{title}</h2>
         {subtitle && <p className="mt-0.5 text-[14px] text-sub">{subtitle}</p>}
@@ -80,7 +80,7 @@ export function SectionHeading({
 
 export function EmptyState({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-card-line px-6 py-10 text-center">
+    <div data-reveal="scale" className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-card-line px-6 py-10 text-center">
       <p className="text-base font-semibold">{title}</p>
       {body && <p className="max-w-sm text-[15px] text-sub">{body}</p>}
       {action && <div className="mt-2">{action}</div>}

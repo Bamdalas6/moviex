@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Backdrop } from "@/components/film/backdrop";
 import { QuickRate, RatingBars } from "@/components/film/film-widgets";
 import { HeartButton } from "@/components/film/heart-button";
+import { TrailerCard, TrailerTrigger } from "@/components/film/trailer";
+import { Tilt } from "@/components/motion/effects";
 import { Icon, StarGlyph } from "@/components/icons";
 import { EmptyState, IconLink, TmdbCredit } from "@/components/layout/page";
 import { ReviewCard } from "@/components/review/review-card";
@@ -33,7 +35,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 function Section({ title, children, className }: { title?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("flex flex-col gap-4 border-t border-line py-8", className)}>
+    <section data-reveal className={cn("flex flex-col gap-4 border-t border-line py-8", className)}>
       {title && <h2 className="text-[22px] font-bold tracking-[-0.4px]">{title}</h2>}
       {children}
     </section>
@@ -80,14 +82,18 @@ export default async function FilmPage({ params, searchParams }: { params: Param
           </div>
 
           <div className="mt-6 flex flex-col items-center gap-7 md:flex-row md:items-end md:gap-10">
-            <Poster
-              film={film}
-              priority
-              showTitle
-              sizes="(min-width: 768px) 260px, 220px"
-              className="aspect-[2/3] w-[220px] shrink-0 rounded-2xl shadow-[0_24px_48px_rgb(0_0_0/0.45)] ring-1 ring-white/15 md:w-[260px]"
-              titleClassName="inset-x-4 bottom-4 text-[26px] leading-none"
-            />
+            <div className="hero-recede shrink-0">
+              <Tilt className="rounded-2xl" max={8}>
+                <Poster
+                  film={film}
+                  priority
+                  showTitle
+                  sizes="(min-width: 768px) 260px, 220px"
+                  className="aspect-[2/3] w-[220px] rounded-2xl shadow-[0_24px_48px_rgb(0_0_0/0.45)] ring-1 ring-white/15 md:w-[260px]"
+                  titleClassName="inset-x-4 bottom-4 text-[26px] leading-none"
+                />
+              </Tilt>
+            </div>
             <div className="flex flex-col items-center gap-2 text-center md:items-start md:pb-2 md:text-left">
               {(film.badge || film.nowPlaying) && (
                 <div className="flex flex-wrap justify-center gap-2 md:justify-start">
@@ -121,6 +127,18 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                   )}
                 </p>
               )}
+              {film.trailerKey && (
+                <TrailerTrigger
+                  videoKey={film.trailerKey}
+                  title={film.title}
+                  className={buttonClass("white", "lg", "mt-3 gap-2.5 pr-6 pl-2")}
+                >
+                  <span className="play-pulse relative flex size-9 items-center justify-center rounded-full bg-cta text-white">
+                    <Icon name="play" size={15} fill="currentColor" stroke="none" className="translate-x-px" />
+                  </span>
+                  Watch trailer
+                </TrailerTrigger>
+              )}
             </div>
           </div>
         </div>
@@ -153,7 +171,13 @@ export default async function FilmPage({ params, searchParams }: { params: Param
             </div>
           )}
 
-          <Section title="About this film" className={cn(!film.uploader && "border-t-0")}>
+          {film.trailerKey && (
+            <Section title="Trailer" className={cn(!film.uploader && "border-t-0")}>
+              <TrailerCard videoKey={film.trailerKey} title={film.trailerName ?? `${film.title} trailer`} subtitle="Plays here · from YouTube" />
+            </Section>
+          )}
+
+          <Section title="About this film" className={cn(!film.uploader && !film.trailerKey && "border-t-0")}>
             {film.synopsis && <p className="text-[16px] leading-relaxed">{film.synopsis}</p>}
             <dl className="grid gap-4 sm:grid-cols-2">
               {film.director && (

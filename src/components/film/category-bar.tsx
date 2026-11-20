@@ -22,7 +22,7 @@ export function CategoryBar({ active, hrefFor, className }: { active?: string; h
                 aria-current={on ? "true" : undefined}
                 scroll={false}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 border-b-2 pt-1 pb-2.5 text-[12px] font-semibold transition",
+                  "hover-wiggle flex flex-col items-center gap-1.5 border-b-2 pt-1 pb-2.5 text-[12px] font-semibold transition",
                   on ? "border-ink text-ink" : "border-transparent text-sub hover:border-card-line hover:text-ink",
                 )}
               >

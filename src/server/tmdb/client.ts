@@ -39,10 +39,34 @@ export type TmdbMovieDetail = {
     cast: { name: string; order: number }[];
     crew: { name: string; job: string }[];
   };
+  videos?: { results: TmdbVideo[] };
   "watch/providers"?: {
     results: Record<string, { link?: string; flatrate?: Provider[]; rent?: Provider[]; buy?: Provider[] } | undefined>;
   };
 };
+
+export type TmdbVideo = {
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official: boolean;
+  published_at?: string;
+};
+
+const VIDEO_TYPE_RANK: Record<string, number> = { Trailer: 0, Teaser: 1, Clip: 2, Featurette: 3 };
+
+/** Best YouTube video for a film: official trailers first, then teasers, clips, featurettes; newest wins ties. */
+export function pickTrailer(videos: TmdbVideo[] | undefined): TmdbVideo | null {
+  const candidates = (videos ?? []).filter((v) => v.site === "YouTube" && v.key && v.type in VIDEO_TYPE_RANK);
+  candidates.sort(
+    (a, b) =>
+      VIDEO_TYPE_RANK[a.type]! - VIDEO_TYPE_RANK[b.type]! ||
+      Number(b.official) - Number(a.official) ||
+      (b.published_at ?? "").localeCompare(a.published_at ?? ""),
+  );
+  return candidates[0] ?? null;
+}
 
 export class TmdbClient {
   constructor(private readonly apiKey: string) {}
@@ -78,7 +102,7 @@ export class TmdbClient {
   }
 
   movie(id: number) {
-    return this.get<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "credits,watch/providers" });
+    return this.get<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "credits,watch/providers,videos" });
   }
 }
 

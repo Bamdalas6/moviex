@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
+import { Burst, Confetti } from "@/components/motion/effects";
 import { Icon } from "@/components/icons";
 import { FormMessage, Switch, TextAreaField, TextField } from "@/components/ui/form";
 import { buttonClass } from "@/components/ui/styles";
@@ -18,12 +19,14 @@ const WORDS = ["Tap a star", "Poor", "Not great", "Good", "Great", "Masterpiece"
 export function ReviewForm({ filmId, slug, existing }: { filmId: string; slug: string; existing: Existing }) {
   const [state, action, submitting] = useActionState<ActionState, FormData>(saveReview, {});
   const [score, setScore] = useState(existing?.score ?? 0);
+  const [pulse, setPulse] = useState(0);
   const [deleting, startDelete] = useTransition();
   const router = useRouter();
 
   if (state.ok) {
     return (
-      <div role="status" className="flex items-center gap-3 rounded-[20px] bg-field px-4 py-3.5">
+      <div role="status" className="animate-pop flex items-center gap-3 rounded-[20px] bg-field px-4 py-3.5">
+        <Confetti />
         <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cta text-white">
           <Icon name="check" size={18} strokeWidth={2.8} />
         </span>
@@ -57,12 +60,24 @@ export function ReviewForm({ filmId, slug, existing }: { filmId: string; slug: s
                 role="radio"
                 aria-checked={k === score}
                 aria-label={`${k} ${k === 1 ? "star" : "stars"}`}
-                onClick={() => setScore(k)}
-                className="flex size-[52px] items-center justify-center transition active:scale-90"
+                onClick={() => {
+                  setScore(k);
+                  setPulse((n) => n + 1);
+                }}
+                className="relative flex size-[52px] items-center justify-center transition hover:scale-110 active:scale-90"
               >
-                <svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true" fill={on ? "#FFB020" : "none"} stroke={on ? "#FFB020" : "var(--idle)"} strokeWidth="1.4" strokeLinejoin="round">
+                <svg
+                  key={on ? `${k}-${pulse}` : k}
+                  width="44"
+                  height="44"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  className={cn(on && pulse > 0 && "animate-pop")}
+                  style={on && pulse > 0 ? { animationDelay: `${(k - 1) * 55}ms` } : undefined}
+                  fill={on ? "#FFB020" : "none"} stroke={on ? "#FFB020" : "var(--idle)"} strokeWidth="1.4" strokeLinejoin="round">
                   <path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />
                 </svg>
+                {k === score && <Burst trigger={pulse} count={10} colors={["#FFB020", "#FFD166", "#F43F5E", "#ffffff"]} />}
               </button>
             );
           })}

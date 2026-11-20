@@ -7,6 +7,7 @@ import { Poster } from "@/components/ui/poster";
 import { buttonClass, iconButtonClass } from "@/components/ui/styles";
 import type { FilmSummary } from "@/lib/types";
 import { cn, plural } from "@/lib/utils";
+import { Tilt } from "@/components/motion/effects";
 import { Backdrop } from "./backdrop";
 import { HeartButton } from "./heart-button";
 
@@ -125,13 +126,15 @@ export function SpotlightDeck({
                   }}
                   className="block rounded-[22px]"
                 >
-                  <Poster
-                    film={f}
-                    priority={i < 3}
-                    className="aspect-[2/3] rounded-[22px] shadow-[0_24px_48px_rgb(0_0_0/0.45)] ring-1 ring-white/15"
-                    titleClassName="inset-x-4 bottom-4 text-2xl"
-                    sizes="(min-width: 768px) 260px, 62vw"
-                  />
+                  <Tilt className="rounded-[22px]" max={on ? 9 : 0}>
+                    <Poster
+                      film={f}
+                      priority={i < 3}
+                      className="aspect-[2/3] rounded-[22px] shadow-[0_24px_48px_rgb(0_0_0/0.45)] ring-1 ring-white/15"
+                      titleClassName="inset-x-4 bottom-4 text-2xl"
+                      sizes="(min-width: 768px) 260px, 62vw"
+                    />
+                  </Tilt>
                 </Link>
               </div>
             );

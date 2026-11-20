@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CategoryBar } from "@/components/film/category-bar";
 import { FilmCard, FilmRail } from "@/components/film/film-row";
 import { SearchPill } from "@/components/film/search-pill";
+import { TrailerCard } from "@/components/film/trailer";
 import { Icon } from "@/components/icons";
 import { EmptyState, PageShell, SectionHeading } from "@/components/layout/page";
 import { ReviewCard } from "@/components/review/review-card";
@@ -29,9 +30,10 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     listFilms({ genre, sort: "box-office", limit: 5 }),
     genre ? listFilms({ genre, sort: "recent", limit: 30 }) : Promise.resolve([] as FilmSummary[]),
     ratingActivity(),
+    listFilms({ genre, withTrailer: true, sort: "recent", limit: 9 }),
   ]);
   const user = await getCurrentUser();
-  const [[inCinemas, topRated, trending, streaming, boxOffice, everything, activity], latest, savedIds] = await Promise.all([
+  const [[inCinemas, topRated, trending, streaming, boxOffice, everything, activity, trailers], latest, savedIds] = await Promise.all([
     filmsPromise,
     genre ? Promise.resolve([]) : reviewFeed({ viewerId: user?.id, feed: "latest", stars: "all", limit: 3 }),
     savedFilmIds(user?.id),
@@ -73,6 +75,19 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
               <FilmCard key={film.id} film={film} ctx={ctx} priority={i < 2} badge="In cinemas" />
             ))}
           </FilmRail>
+        </section>
+      )}
+
+      {trailers.length > 0 && (
+        <section className="flex flex-col gap-5">
+          <SectionHeading title={genre ? `${genre} trailers` : "Watch the trailers"} subtitle="Official trailers, straight from YouTube" />
+          <div className="scrollbar-none -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-5 px-5 pb-1 md:mx-0 md:grid md:snap-none md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0">
+            {trailers.map((film) => (
+              <div key={film.id} data-reveal="scale" className="w-[78%] shrink-0 snap-start sm:w-[46%] md:w-auto">
+                <TrailerCard videoKey={film.trailerKey!} title={film.title} subtitle={`${film.year} · ${film.genres.slice(0, 2).join(", ")}`} />
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

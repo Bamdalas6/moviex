@@ -23,6 +23,9 @@ export type FilmSummary = Poster & {
   runtimeMinutes: number | null;
   synopsis: string;
   nowPlaying: boolean;
+  /** YouTube video id of the official trailer, when TMDB lists one. */
+  trailerKey: string | null;
+  trailerName: string | null;
   avgRating: number | null;
   ratingCount: number;
   reviewCount: number;

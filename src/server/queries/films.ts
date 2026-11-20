@@ -72,6 +72,8 @@ function toSummary(row: SummaryRow): FilmSummary {
     runtimeMinutes: f.runtimeMinutes,
     synopsis: f.synopsis,
     nowPlaying: f.nowPlaying,
+    trailerKey: f.trailerKey,
+    trailerName: f.trailerName,
     posterUrl: resolvePoster(f.posterKey, f.tmdbPosterPath),
     posterGradient: f.posterGradient,
     posterSpoiler: f.posterSpoiler,
@@ -95,6 +97,7 @@ export type FilmQuery = {
   director?: string;
   streaming?: boolean;
   nowPlaying?: boolean;
+  withTrailer?: boolean;
   sort?: FilmSort;
   limit?: number;
 };
@@ -128,6 +131,7 @@ async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
   if (query.director) where.push(eq(films.director, query.director));
   if (query.streaming) where.push(isNotNull(films.platform));
   if (query.nowPlaying) where.push(eq(films.nowPlaying, true));
+  if (query.withTrailer) where.push(isNotNull(films.trailerKey));
   if (query.sort === "box-office") where.push(isNotNull(films.boxOfficeRank));
 
   const order = {

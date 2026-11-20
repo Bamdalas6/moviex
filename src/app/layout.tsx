@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import { cookies } from "next/headers";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { THEME_COOKIE, type ThemePreference } from "@/lib/constants";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         >
           Skip to content
         </a>
+        <MotionProvider />
         {children}
       </body>
     </html>

@@ -80,6 +80,9 @@ export const films = sqliteTable(
     nowPlaying: integer("now_playing", { mode: "boolean" }).notNull().default(false),
     /** TMDB/JustWatch page listing every way to watch this film. */
     watchLink: text("watch_link"),
+    /** Official YouTube trailer (video id) from TMDB's video list. */
+    trailerKey: text("trailer_key"),
+    trailerName: text("trailer_name"),
     posterGradient: text("poster_gradient").notNull(),
     posterSpoiler: integer("poster_spoiler", { mode: "boolean" }).notNull().default(false),
     allowReviews: integer("allow_reviews", { mode: "boolean" }).notNull().default(true),

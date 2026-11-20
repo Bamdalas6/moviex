@@ -43,7 +43,7 @@ export function ReviewCard({ review, showFilm, compact, bare, signedIn }: Props)
   const clamp = compact || (long && !expanded);
 
   return (
-    <article id={`review-${review.id}`} className={cn("flex scroll-mt-28 flex-col gap-3.5", !bare && cn(cardClass, "p-5"))}>
+    <article id={`review-${review.id}`} data-reveal className={cn("flex scroll-mt-28 flex-col gap-3.5", !bare && cn(cardClass, "p-5"))}>
       {showFilm && (
         <Link href={`/films/${review.film.slug}`} className="group flex items-center gap-3">
           <Poster film={review.film} showTitle={false} className="h-14 w-10 shrink-0 rounded-lg" sizes="40px" />

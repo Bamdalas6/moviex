@@ -17,7 +17,10 @@ const nextConfig: NextConfig = {
     // Serve images as-is: TMDB's CDN already delivers sized posters, uploads are capped
     // at 5 MB, and this keeps the app free of a paid image-resizing service on Cloudflare.
     unoptimized: true,
-    remotePatterns: [{ protocol: "https", hostname: "image.tmdb.org", pathname: "/t/p/**" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "image.tmdb.org", pathname: "/t/p/**" },
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
+    ],
   },
   experimental: {
     serverActions: {

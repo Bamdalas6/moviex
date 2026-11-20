@@ -127,6 +127,209 @@
   pointer-events: none;
 }
 
+/* ------------------------------------------------------------------ */
+/* Motion                                                              */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes page-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes trailer-in {
+  from { opacity: 0; transform: scale(0.92) translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.4); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+@keyframes ripple {
+  from { transform: translate(-50%, -50%) scale(0); opacity: 0.35; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0.6); }
+  70% { box-shadow: 0 0 0 16px rgb(255 255 255 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  30% { transform: rotate(-12deg) translateY(-3px); }
+  60% { transform: rotate(9deg) translateY(-3px); }
+}
+@keyframes burst {
+  from { transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(1); opacity: 1; }
+  to { transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-26px) scale(0.3); opacity: 0; }
+}
+@keyframes confetti-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate3d(var(--dx), 105vh, 0) rotate(var(--spin)); opacity: 0.9; }
+}
+@keyframes shine-sweep {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to { transform: translateX(220%) skewX(-20deg); }
+}
+@keyframes grow-x {
+  to { transform: scaleX(1); }
+}
+@keyframes parallax-down {
+  to { transform: translateY(140px) scale(1.08); }
+}
+@keyframes recede {
+  to { transform: translateY(48px) scale(0.94); opacity: 0.55; }
+}
+
+@utility animate-page-in {
+  animation: page-in 0.4s var(--ease-out) both;
+}
+@utility animate-trailer-in {
+  animation: trailer-in 0.4s var(--ease-out) both;
+}
+@utility animate-pop {
+  animation: pop 0.5s var(--ease-spring);
+}
+@utility play-pulse {
+  animation: pulse-ring 2.2s ease-out infinite;
+}
+@utility shimmer {
+  background: linear-gradient(90deg, var(--field) 25%, var(--line) 50%, var(--field) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@utility hover-wiggle {
+  &:hover > svg,
+  &:focus-visible > svg {
+    animation: wiggle 0.5s var(--ease-out);
+  }
+}
+
+/* Scroll reveal ([data-reveal], "scale", "left") is driven by MotionProvider via the Web Animations API. */
+
+/* Click ripple (spans injected by MotionProvider into .ripple elements). */
+.ripple {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.ripple-ink {
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  background: currentColor;
+  pointer-events: none;
+  animation: ripple 0.6s var(--ease-out) forwards;
+}
+
+/* Film cards: lift, poster zoom and a light sweep on hover. */
+.film-card .lift {
+  transition: transform 0.35s var(--ease-out);
+}
+.film-card:hover .lift {
+  transform: translateY(-6px);
+}
+.film-card .poster-img {
+  transition: transform 0.6s var(--ease-out), filter 0.4s;
+}
+.film-card:hover .poster-img {
+  transform: scale(1.07);
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  pointer-events: none;
+}
+.film-card:hover .shine::after {
+  animation: shine-sweep 0.9s var(--ease-out);
+}
+
+/* 3D tilt (Tilt component sets --rx/--ry from the pointer). */
+.tilt {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.25s var(--ease-out);
+  transform-style: preserve-3d;
+}
+.tilt-glare {
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.28), transparent 55%);
+  opacity: var(--glare, 0);
+  transition: opacity 0.3s;
+}
+
+/* Heart/star burst particles and review confetti. */
+.burst-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: burst 0.6s var(--ease-out) forwards;
+}
+.confetti-piece {
+  position: fixed;
+  top: -16px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 100;
+  animation: confetti-fall var(--dur, 2.4s) cubic-bezier(0.25, 0.6, 0.4, 1) forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Scroll-driven effects (no JavaScript; browsers without support simply skip them). */
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: 3px;
+  background: linear-gradient(90deg, var(--cta), #f43f5e, #ffb020);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scroll-progress {
+      animation: grow-x linear both;
+      animation-timeline: scroll(root);
+    }
+    .parallax-layer {
+      animation: parallax-down linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 700px;
+    }
+    .hero-recede {
+      animation: recede linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 520px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece,
+  .burst-dot {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

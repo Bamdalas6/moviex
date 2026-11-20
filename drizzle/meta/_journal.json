@@ -15,6 +15,13 @@
       "when": 1795176295575,
       "tag": "0001_tmdb_cinemas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795211766400,
+      "tag": "0002_trailers",
+      "breakpoints": true
     }
   ]
 }

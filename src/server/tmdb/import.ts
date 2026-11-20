@@ -3,7 +3,7 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { GENRES, MAX_GENRES_PER_FILM, POSTER_GRADIENTS } from "../../lib/constants";
 import { pickByKey, slugify } from "../../lib/utils";
 import * as schema from "../db/schema";
-import { mapLimit, TmdbClient, type TmdbListMovie, type TmdbMovieDetail } from "./client";
+import { mapLimit, pickTrailer, TmdbClient, type TmdbListMovie, type TmdbMovieDetail } from "./client";
 
 /**
  * Imports Nollywood and wider African cinema from TMDB:
@@ -171,6 +171,7 @@ export async function importFromTmdb(
       [...(list ?? [])].sort((a, b) => a.display_priority - b.display_priority);
     const streams = byPriority(ngProviders?.flatrate);
     const directors = detail.credits.crew.filter((c) => c.job === "Director").map((c) => c.name);
+    const trailer = pickTrailer(detail.videos?.results);
 
     const values = {
       title,
@@ -192,6 +193,8 @@ export async function importFromTmdb(
       releaseDate: detail.release_date,
       nowPlaying: Boolean(hint.nowPlaying),
       watchLink: ngProviders?.link ?? null,
+      trailerKey: trailer?.key ?? null,
+      trailerName: trailer?.name ?? null,
       ...(hint.curated?.badge !== undefined ? { badge: hint.curated.badge } : {}),
       ...(hint.curated?.boxOfficeRank !== undefined ? { boxOfficeRank: hint.curated.boxOfficeRank } : {}),
     };

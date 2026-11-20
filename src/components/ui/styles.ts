@@ -6,7 +6,7 @@ type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "glass" | "
 type ButtonSize = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[transform,background-color,filter] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 select-none";
+  "ripple inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[transform,background-color,filter,box-shadow] hover:-translate-y-px hover:shadow-card active:translate-y-0 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 select-none";
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-cta text-white hover:brightness-110",
@@ -32,7 +32,7 @@ export function buttonClass(variant: ButtonVariant = "primary", size: ButtonSize
 /** Round icon button. `outline` is the white circle with a hairline border used in page headers. */
 export function iconButtonClass(variant: "outline" | "glass" | "field" | "plain" = "outline", className?: string) {
   return cn(
-    "inline-flex size-10 shrink-0 items-center justify-center rounded-full transition active:scale-95",
+    "ripple inline-flex size-10 shrink-0 items-center justify-center rounded-full transition hover:scale-105 active:scale-90",
     variant === "outline" && "border border-card-line bg-card text-ink shadow-card hover:shadow-lift",
     variant === "glass" && "border border-white/40 bg-black/20 text-white backdrop-blur-md hover:bg-black/30",
     variant === "field" && "bg-field text-ink hover:brightness-95",
@@ -44,7 +44,7 @@ export function iconButtonClass(variant: "outline" | "glass" | "field" | "plain"
 /** Filter pill: outlined when off, solid ink when on. */
 export function chipClass(selected: boolean, className?: string) {
   return cn(
-    "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition",
+    "ripple inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition active:scale-95",
     selected ? "border-ink bg-ink text-page" : "border-card-line bg-card text-ink hover:border-ink",
     className,
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
+import { Burst } from "@/components/motion/effects";
 import { cn } from "@/lib/utils";
 import { rateFilm } from "@/server/actions/reviews";
 
@@ -23,6 +24,9 @@ export function QuickRate({
 }) {
   const [optimistic, setOptimistic] = useOptimistic(score ?? 0);
   const [pending, startTransition] = useTransition();
+  // Each rating replays a left-to-right star pop and bursts the chosen star.
+  const [pulse, setPulse] = useState(0);
+  const [picked, setPicked] = useState(0);
 
   return (
     <div className={cn("flex flex-wrap items-center justify-between gap-2", className)}>
@@ -36,7 +40,15 @@ export function QuickRate({
         {[1, 2, 3, 4, 5].map((k) => {
           const on = k <= optimistic;
           const star = (
-            <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" fill={on ? "#FFB020" : "none"} stroke={on ? "#FFB020" : "var(--idle)"} strokeWidth="1.5" strokeLinejoin="round">
+            <svg
+              key={on ? `${k}-${pulse}` : k}
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className={cn(on && pulse > 0 && "animate-pop")}
+              style={on && pulse > 0 ? { animationDelay: `${(k - 1) * 55}ms` } : undefined}
+              fill={on ? "#FFB020" : "none"} stroke={on ? "#FFB020" : "var(--idle)"} strokeWidth="1.5" strokeLinejoin="round">
               <path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />
             </svg>
           );
@@ -49,15 +61,18 @@ export function QuickRate({
               aria-checked={k === optimistic}
               aria-label={label}
               disabled={pending}
-              onClick={() =>
+              onClick={() => {
+                setPicked(k);
+                setPulse((n) => n + 1);
                 startTransition(async () => {
                   setOptimistic(k);
                   await rateFilm(filmId, k);
-                })
-              }
-              className="flex h-11 w-9 items-center justify-center transition hover:scale-110 active:scale-90"
+                });
+              }}
+              className="relative flex h-11 w-9 items-center justify-center transition hover:scale-110 active:scale-90"
             >
               {star}
+              {k === picked && <Burst trigger={pulse} colors={["#FFB020", "#FFD166", "#F43F5E", "#ffffff"]} />}
             </button>
           ) : (
             <Link key={k} href={`/login?next=/films/${slug}`} aria-label={label} className="flex h-11 w-9 items-center justify-center">

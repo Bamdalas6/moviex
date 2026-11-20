@@ -38,7 +38,7 @@ export function Poster({ film, showTitle, titleClassName, className, sizes = "20
           sizes={sizes}
           priority={priority}
           unoptimized={external}
-          className={cn("object-cover transition", hidden && "scale-110 blur-xl")}
+          className={cn("poster-img object-cover", hidden && "scale-110 blur-xl")}
         />
       ) : (
         <span className="poster-shine" aria-hidden="true" />
