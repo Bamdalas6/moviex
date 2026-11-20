@@ -65,8 +65,9 @@ exists — a missing bucket makes every deploy fail.
    (Choose **Workers**, not **Pages** — Pages can't run this app.)
 2. Settings:
    - **Project name:** `moviex` — must match `name` in `wrangler.jsonc`.
-   - **Build command:** leave empty.
-   - **Deploy command:** `npx wrangler deploy` (it builds the Worker itself via `build.command` in `wrangler.jsonc`).
+   - **Build command:** `npm run build` (the default). On Cloudflare it detects `WORKERS_CI=1` and builds
+     the Worker with OpenNext; locally it's a normal `next build`.
+   - **Deploy command:** `npx wrangler deploy` (the default).
    - **Root directory:** `/`
 3. Save and deploy. The site will show an error page until the secrets below exist — that's expected.
 
@@ -94,7 +95,7 @@ Then **Deployments → Retry** (or push a commit). Your site is live at
 |---|---|
 | Deploy fails: *R2 bucket … not found* / *enable R2* | Comment out `r2_buckets` in `wrangler.jsonc` (see step 2). |
 | Deploy fails: *name … does not match* | Project name in Cloudflare must be `moviex`, or change `name` in `wrangler.jsonc`. |
-| Deploy fails: *Could not find .open-next/worker.js* | Deploy command must be `npx wrangler deploy` with the `build` block present in `wrangler.jsonc`. |
+| Deploy fails: *Could not find compiled Open Next config* | The OpenNext build didn't run. Build command must be `npm run build` (or `npx opennextjs-cloudflare build`); the log should show "building the Worker with OpenNext". |
 | Site shows an error / health says *DATABASE_URL is not set* | Add both secrets (step 4), then **Retry deployment**. |
 | Health says *401* / *unauthorized* | The Turso token is wrong or expired — create a new one and update the secret. |
 | Pages work but lists are empty | Run `db:migrate` and `db:import-tmdb` against Turso (step 1.4). |

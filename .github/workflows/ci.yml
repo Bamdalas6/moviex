@@ -36,9 +36,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Same path as Cloudflare's default deploy: `wrangler deploy` runs the OpenNext build
-      # (build.command in wrangler.jsonc), then bundles the Worker. --dry-run skips the upload.
-      - name: Build and measure Worker (dry run, no deploy)
+      # Exactly what Cloudflare Workers Builds runs: `npm run build` with WORKERS_CI=1
+      # (OpenNext build), then `wrangler deploy` — here as a dry run that skips the upload.
+      - name: Build the Worker like Cloudflare does
+        run: npm run build
+        env:
+          WORKERS_CI: "1"
+      - name: Measure Worker size (dry run, no deploy)
         run: |
           npx wrangler deploy --dry-run --outdir .wrangler/dry-run 2>&1 | tee wrangler.log
           gzip_kib=$(grep -oP 'gzip:\s*\K[0-9.]+(?=\s*KiB)' wrangler.log | tail -1)

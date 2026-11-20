@@ -1,15 +1,12 @@
 {
   // Cloudflare Workers config for the OpenNext build.
-  // Deploy with `npx wrangler deploy` — the `build` step below turns the Next.js app into a Worker first,
-  // so Cloudflare's default deploy command works without any custom build command.
+  // On Cloudflare Workers Builds, `npm run build` builds the Worker with OpenNext (scripts/build.mjs)
+  // and `npx wrangler deploy` uploads it. Locally: `npm run cf:build` then `npm run cf:deploy`.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "moviex",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-  "build": {
-    "command": "npx opennextjs-cloudflare build"
-  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
