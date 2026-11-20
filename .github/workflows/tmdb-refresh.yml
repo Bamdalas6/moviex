@@ -1,0 +1,39 @@
+# Refreshes films, posters, streaming availability and the "in cinemas now"
+# list from TMDB every day. Runs here (not on Cloudflare) because one import
+# makes 100+ network calls — more than a free Workers request allows.
+#
+# Repository secrets needed (Settings → Secrets and variables → Actions):
+#   DATABASE_URL, DATABASE_AUTH_TOKEN, TMDB_API_KEY
+name: Refresh films from TMDB
+
+on:
+  schedule:
+    - cron: "30 4 * * *" # daily, 05:30 in Lagos
+  workflow_dispatch:
+
+concurrency:
+  group: tmdb-refresh
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply pending migrations
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+      - name: Import from TMDB
+        run: npm run db:import-tmdb
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}

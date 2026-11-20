@@ -6,7 +6,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ key
   const poster = await readPoster(key);
   if (!poster) return new Response("Not found", { status: 404 });
 
-  return new Response(new Uint8Array(poster.bytes), {
+  return new Response(poster.bytes, {
     headers: {
       "Content-Type": poster.mime,
       "Cache-Control": "public, max-age=31536000, immutable",

@@ -20,10 +20,15 @@
     "db:import-tmdb": "tsx scripts/import-tmdb.ts",
     "db:reset": "tsx scripts/reset.ts && npm run db:migrate && npm run db:seed",
     "db:studio": "drizzle-kit studio",
-    "setup": "npm run db:migrate && npm run db:seed"
+    "setup": "npm run db:migrate && npm run db:seed",
+    "db:create-admin": "tsx scripts/create-admin.ts",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
+    "@opennextjs/cloudflare": "^1.20.18",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
     "next": "^16.4.6",
@@ -45,6 +50,7 @@
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "wrangler": "^4.165.0"
   }
 }

@@ -48,9 +48,10 @@ describe("formatting", () => {
 
 describe("detectImageType", () => {
   it("identifies images by magic bytes, not by extension", () => {
-    expect(detectImageType(Buffer.from([0xff, 0xd8, 0xff, 0xe0]))?.mime).toBe("image/jpeg");
-    expect(detectImageType(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))?.mime).toBe("image/png");
-    expect(detectImageType(Buffer.from("RIFF\0\0\0\0WEBPVP8 ", "binary"))?.mime).toBe("image/webp");
-    expect(detectImageType(Buffer.from("<svg onload=alert(1)>"))).toBeNull();
+    const bytes = (s: string | number[]) => new Uint8Array(typeof s === "string" ? Buffer.from(s, "binary") : s);
+    expect(detectImageType(bytes([0xff, 0xd8, 0xff, 0xe0]))?.mime).toBe("image/jpeg");
+    expect(detectImageType(bytes([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))?.mime).toBe("image/png");
+    expect(detectImageType(bytes("RIFF\0\0\0\0WEBPVP8 "))?.mime).toBe("image/webp");
+    expect(detectImageType(bytes("<svg onload=alert(1)>"))).toBeNull();
   });
 });

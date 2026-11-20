@@ -41,7 +41,7 @@ export function UploadForm() {
       return;
     }
     if (selected.size > POSTER_MAX_BYTES) {
-      setClientError("Posters can be up to 20 MB");
+      setClientError("Posters can be up to 5 MB");
       return;
     }
     posterRef.current = selected;
@@ -183,7 +183,7 @@ export function UploadForm() {
           </span>
           <p className="mt-1 text-lg font-bold">Drag your poster here</p>
           <p id="poster-help" className="text-[13.5px]">
-            JPG, PNG or WebP, portrait 2:3, up to 20 MB
+            JPG, PNG or WebP, portrait 2:3, up to 5 MB
           </p>
           <label htmlFor="poster" className={buttonClass("primary", "md", "mt-1.5 cursor-pointer shadow-none")}>
             Choose file

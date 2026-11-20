@@ -10,16 +10,19 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // libSQL ships native bindings; keep it out of the server bundle.
+  // libSQL ships native bindings for Node; keep it out of the server bundle there.
+  // (On Cloudflare Workers the package resolves to its pure-JS HTTP client.)
   serverExternalPackages: ["@libsql/client", "libsql"],
   images: {
-    // Official posters and provider logos from The Movie Database's CDN.
+    // Serve images as-is: TMDB's CDN already delivers sized posters, uploads are capped
+    // at 5 MB, and this keeps the app free of a paid image-resizing service on Cloudflare.
+    unoptimized: true,
     remotePatterns: [{ protocol: "https", hostname: "image.tmdb.org", pathname: "/t/p/**" }],
   },
   experimental: {
     serverActions: {
-      // Posters are uploaded through a Server Action (max 20 MB, see lib/constants.ts).
-      bodySizeLimit: "21mb",
+      // Posters are uploaded through a Server Action (max 5 MB, see lib/constants.ts).
+      bodySizeLimit: "6mb",
     },
   },
   async headers() {

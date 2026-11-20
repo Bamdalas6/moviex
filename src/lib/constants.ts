@@ -34,7 +34,7 @@ export const INDUSTRIES = ["Nollywood", "Ghana", "Kannywood", "South Africa", "K
 export const MAX_GENRES_PER_FILM = 3;
 export const REVIEW_BODY_MAX = 500;
 export const REVIEW_HEADLINE_MAX = 80;
-export const POSTER_MAX_BYTES = 20 * 1024 * 1024;
+export const POSTER_MAX_BYTES = 5 * 1024 * 1024;
 export const POSTER_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;

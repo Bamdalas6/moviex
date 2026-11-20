@@ -22,7 +22,7 @@ export default function TermsPage() {
           <h2 className="text-lg font-extrabold">Privacy</h2>
           <p>
             We store your name, username, email and the ratings, reviews and uploads you make. Your password is stored only as
-            a salted scrypt hash. We use a single essential cookie to keep you signed in and one to remember your theme. We
+            a salted PBKDF2-SHA256 hash. We use a single essential cookie to keep you signed in and one to remember your theme. We
             don&apos;t sell your data or use third-party trackers.
           </p>
         </section>

@@ -7,17 +7,23 @@ import { drizzle } from "drizzle-orm/libsql";
 import { env } from "@/env";
 import * as schema from "./schema";
 
-function ensureLocalDirectory(url: string) {
-  if (!url.startsWith("file:")) return;
-  const file = url.slice("file:".length);
-  mkdirSync(path.dirname(path.resolve(/* turbopackIgnore: true */ file)), { recursive: true });
-}
+/**
+ * libSQL connection. Locally a SQLite file (file:./data/marquee.db); in
+ * production a hosted libSQL database such as Turso (libsql://…), which is also
+ * what Cloudflare Workers use — there the package resolves to its HTTP client.
+ */
+
+const isFile = env.DATABASE_URL.startsWith("file:");
 
 function createLibsqlClient(): Client {
-  ensureLocalDirectory(env.DATABASE_URL);
+  if (isFile) {
+    mkdirSync(path.dirname(path.resolve(/* turbopackIgnore: true */ env.DATABASE_URL.slice("file:".length))), {
+      recursive: true,
+    });
+  }
   const client = createClient({ url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN });
-  // SQLite needs foreign keys switched on per connection.
-  void client.execute("PRAGMA foreign_keys = ON");
+  // A local SQLite connection needs foreign keys switched on; hosted libSQL enforces them server-side.
+  if (isFile) void client.execute("PRAGMA foreign_keys = ON");
   return client;
 }
 

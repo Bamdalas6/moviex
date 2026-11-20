@@ -99,14 +99,20 @@ Key decisions:
 
 ## Security notes
 
-- Passwords: scrypt (N=2^15) with per-user salt; constant-time compare; dummy hash on unknown emails to avoid
-  user enumeration through timing.
+- Passwords: PBKDF2-SHA256 via Web Crypto with per-user salt (runs natively on Cloudflare Workers); cost set by
+  `PASSWORD_ITERATIONS` (20,000 by default to fit the Workers Free CPU limit — raise it on a paid plan or a
+  regular server, and hashes upgrade at next login); constant-time compare; dummy hash on unknown emails to
+  avoid user enumeration through timing.
 - Sessions: 256-bit random token in an `httpOnly`, `SameSite=Lax` (and `Secure` in production) cookie; only
   its SHA-256 is stored, so a database leak can't be replayed. Sliding 30-day expiry; logout revokes server-side.
 - Server Actions get Next's built-in Origin check (CSRF). Post-login redirects only allow same-site paths.
 - Uploads: type detected from magic bytes (JPEG/PNG/WebP only — no SVG), 20 MB cap, random file names,
   traversal-proof keys, `nosniff` + `default-src 'none'` on the poster route.
 - Rate limits on login, sign-up and uploads (in-memory; move to Redis when running several instances).
+
+## Deploying
+
+Cloudflare Workers (free tier) + Turso + R2, with automatic deploys from GitHub: see **[DEPLOY.md](DEPLOY.md)**.
 
 ## Production checklist
 

@@ -7,7 +7,7 @@ import { AVATAR_COLORS } from "@/lib/constants";
 import type { ActionState } from "@/lib/types";
 import { pickByKey } from "@/lib/utils";
 import { fieldErrors, loginSchema, signupSchema } from "@/lib/validation";
-import { getDummyHash, hashPassword, verifyPassword } from "@/server/auth/password";
+import { getDummyHash, hashPassword, needsRehash, verifyPassword } from "@/server/auth/password";
 import { createSession, destroySession, safeNext } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import { users } from "@/server/db/schema";
@@ -44,6 +44,11 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
   // Always run a hash comparison so response time doesn't reveal whether the email exists.
   const valid = await verifyPassword(parsed.data.password, user?.passwordHash ?? (await getDummyHash()));
   if (!user || !valid) return { values, message: "That email and password don't match an account." };
+
+  // Transparently upgrade old or cheaper hashes now that we have the plaintext.
+  if (needsRehash(user.passwordHash)) {
+    await db.update(users).set({ passwordHash: await hashPassword(parsed.data.password) }).where(eq(users.id, user.id));
+  }
 
   await createSession(user.id);
   redirect(safeNext(parsed.data.next));

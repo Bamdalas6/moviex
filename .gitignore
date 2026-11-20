@@ -7,6 +7,11 @@
 next-env.d.ts
 *.tsbuildinfo
 
+# cloudflare / opennext
+/.open-next/
+/.wrangler/
+.dev.vars*
+
 # local data
 /data/
 /storage/
