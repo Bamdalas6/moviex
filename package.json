@@ -22,6 +22,9 @@
     "db:studio": "drizzle-kit studio",
     "setup": "npm run db:migrate && npm run db:seed",
     "db:create-admin": "tsx scripts/create-admin.ts",
+    "prod:migrate": "tsx --env-file=.env.production.local scripts/migrate.ts",
+    "prod:import-tmdb": "tsx --env-file=.env.production.local scripts/import-tmdb.ts",
+    "prod:create-admin": "tsx --env-file=.env.production.local scripts/create-admin.ts",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "wrangler deploy"

@@ -35,12 +35,12 @@ site works; only poster uploads are disabled.
    TMDB_API_KEY="<your TMDB key>"
    ```
 
-4. Create the tables and load the films (PowerShell; `npm.cmd` avoids the script-policy error):
+4. Create the tables and load the films (`npm.cmd` avoids PowerShell's script-policy error). The
+   `prod:` scripts read `.env.production.local`; the TMDB key still comes from `.env.local`:
 
    ```powershell
-   $env:DATABASE_URL = "libsql://moviex-<you>.turso.io"; $env:DATABASE_AUTH_TOKEN = "<token>"
-   npm.cmd run db:migrate
-   npm.cmd run db:import-tmdb
+   npm.cmd run prod:migrate
+   npm.cmd run prod:import-tmdb
    ```
 
    Do **not** run `db:seed` against production — it wipes data and creates demo accounts with a public password.
@@ -49,7 +49,7 @@ site works; only poster uploads are disabled.
 
    ```powershell
    $env:ADMIN_EMAIL = "you@example.com"; $env:ADMIN_NAME = "Your Name"; $env:ADMIN_PASSWORD = "<12+ characters>"
-   npm.cmd run db:create-admin
+   npm.cmd run prod:create-admin
    ```
 
 ## 2. (Optional) Poster uploads with R2
