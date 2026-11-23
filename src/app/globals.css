@@ -200,6 +200,15 @@
   from { opacity: 0; transform: translateY(-18%); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* Login / sign-up backdrop: poster columns drift up and down (each holds its posters twice: -50% loops). */
+@keyframes wall-up {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+@keyframes wall-down {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0); }
+}
 @keyframes splash-breathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
@@ -313,6 +322,15 @@ body:has([data-onboarding-open]) [data-app-chrome] {
   visibility: hidden;
 }
 
+.wall-up {
+  animation: wall-up var(--wall-speed, 70s) linear infinite;
+  will-change: transform;
+}
+.wall-down {
+  animation: wall-down var(--wall-speed, 70s) linear infinite;
+  will-change: transform;
+}
+
 .runway-track {
   animation: runway-scroll 48s linear infinite;
   will-change: transform;
@@ -358,6 +376,8 @@ body:has([data-onboarding-open]) [data-app-chrome] {
   .burst-dot {
     display: none;
   }
+  .wall-up,
+  .wall-down,
   .runway-track,
   .runway-in,
   .splash-breathe {
