@@ -119,7 +119,7 @@ export function PersonResult({ person }: { person: Person }) {
         <span className="block truncate text-[17px] font-bold group-hover:underline">{person.name}</span>
         <span className="block truncate text-[13.5px] text-sub">{person.headline ?? person.role}</span>
         <span className="mt-1 block text-[13px] font-medium">
-          {plural(person.filmCount, "film")} on Marquee
+          {plural(person.filmCount, "film")} on Watch Nollywood
           {person.socialCount > 0 && <span className="text-sub"> · {plural(person.socialCount, "social account")}</span>}
         </span>
       </span>
@@ -174,7 +174,7 @@ export function ChannelCard({ channel, className }: { channel: Channel; classNam
           </Link>
         </h3>
         <p className="text-[13px] text-sub">
-          {[channel.language, channel.filmCount ? plural(channel.filmCount, "film") + " on Marquee" : null].filter(Boolean).join(" · ") || "YouTube"}
+          {[channel.language, channel.filmCount ? plural(channel.filmCount, "film") + " on Watch Nollywood" : null].filter(Boolean).join(" · ") || "YouTube"}
         </p>
         {channel.description && <p className="line-clamp-2 text-[14px] leading-relaxed">{channel.description}</p>}
         <a

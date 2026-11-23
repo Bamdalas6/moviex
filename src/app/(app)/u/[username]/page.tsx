@@ -119,7 +119,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pa
                 Follow
               </Link>
             )}
-            <ShareButton path={`/u/${profile.username}`} title={`${profile.name} on Marquee`} label="Share profile" variant="outline" />
+            <ShareButton path={`/u/${profile.username}`} title={`${profile.name} on Watch Nollywood`} label="Share profile" variant="outline" />
           </div>
           {self && (
             <Link href="/account/reviews" className={buttonClass("secondary", "md", "-mt-3 w-full")}>
@@ -135,7 +135,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pa
               </p>
             )}
             <p className="flex items-center gap-2.5 text-sub">
-              <Icon name="ticket" size={18} /> On Marquee since {formatMonthYear(profile.createdAt)}
+              <Icon name="ticket" size={18} /> On Watch Nollywood since {formatMonthYear(profile.createdAt)}
             </p>
           </div>
         </aside>

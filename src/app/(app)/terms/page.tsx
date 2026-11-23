@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Terms & privacy" };
 export default function TermsPage() {
   return (
     <PageShell>
-      <PageTitle title="Terms & privacy" subtitle="The short version of how Marquee works" />
+      <PageTitle title="Terms & privacy" subtitle="The short version of how Watch Nollywood works" />
       <article className={`${cardClass} flex flex-col gap-4 p-6 text-[15px] leading-relaxed`}>
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-extrabold">Community rules</h2>

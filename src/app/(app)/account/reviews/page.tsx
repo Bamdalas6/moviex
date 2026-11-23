@@ -55,7 +55,7 @@ export default async function MyReviewsPage({ searchParams }: { searchParams: Se
           <h1 className="text-[28px] leading-tight font-bold tracking-[-0.6px] md:text-[32px]">
             {kind === "reviews" ? "My reviews" : "My ratings"}
           </h1>
-          <p className="mt-1 text-[15px] text-sub">Everything you&apos;ve dropped on Marquee, in one place.</p>
+          <p className="mt-1 text-[15px] text-sub">Everything you&apos;ve dropped on Watch Nollywood, in one place.</p>
         </div>
         <Link href="/discover" className={buttonClass("primary", "md")}>
           <Icon name="pen" size={16} /> Review a film

@@ -1,4 +1,4 @@
-# Deploying Marquee to Cloudflare (free tier)
+# Deploying Watch Nollywood to Cloudflare (free tier)
 
 The app runs on **Cloudflare Workers** through [OpenNext](https://opennext.js.org/cloudflare), with
 **Turso** (hosted libSQL/SQLite) as the database and **Cloudflare R2** for community poster uploads.

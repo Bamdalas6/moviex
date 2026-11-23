@@ -2,7 +2,7 @@
   "name": "marquee",
   "version": "0.1.0",
   "private": true,
-  "description": "Marquee — discover, rate and review Nollywood and African cinema.",
+  "description": "Watch Nollywood — discover, rate and review Nollywood films.",
   "engines": {
     "node": ">=20.9"
   },

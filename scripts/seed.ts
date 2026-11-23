@@ -7,7 +7,7 @@ import { importFromTmdb } from "../src/server/tmdb/import";
 import { client, db, schema } from "./db";
 
 /**
- * Seeds a realistic dataset: the films, people and reviews from the Marquee
+ * Seeds a realistic dataset: the films, people and reviews from the Watch Nollywood
  * design, plus a crowd of synthetic raters so averages and distributions look
  * like a live product. Deterministic (seeded PRNG) so every reset matches.
  */
@@ -218,7 +218,7 @@ const PEOPLE: SeedUser[] = [
     color: "#FFB020",
     genres: ["Comedy", "Drama", "Crime", "Epic"],
   },
-  { username: "admin", name: "Marquee Moderation", email: "admin@marquee.test", color: "#3B4256", role: "admin" },
+  { username: "admin", name: "Watch Nollywood Moderation", email: "admin@marquee.test", color: "#3B4256", role: "admin" },
   { username: "amaka.watches", name: "Amaka O.", email: "amaka@marquee.test", color: "#E85A8C", location: "Lekki, Lagos" },
   { username: "dele.f", name: "Dele F.", email: "dele@marquee.test", color: "#13A574" },
   { username: "nneka.b", name: "Nneka B.", email: "nneka@marquee.test", color: "#FFB020" },
@@ -410,7 +410,7 @@ async function main() {
     }
   }
   // Imported films get demo ratings centred on their real TMDB audience score
-  // (TMDB is out of 10, Marquee out of 5), more raters for better-known films.
+  // (TMDB is out of 10, Watch Nollywood out of 5), more raters for better-known films.
   const curatedIds = new Set(filmIds.values());
   for (const film of imported) {
     if (curatedIds.has(film.id)) continue;

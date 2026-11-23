@@ -1,4 +1,4 @@
-export const APP_NAME = "Marquee";
+export const APP_NAME = "Watch Nollywood";
 
 export const GENRES = [
   "Drama",
@@ -14,10 +14,10 @@ export const GENRES = [
   "Documentary",
 ] as const;
 
-/** Nollywood's languages (Hausa-language films are Kannywood, which Marquee doesn't include). */
+/** Nollywood's languages (Hausa-language films are Kannywood, which Watch Nollywood doesn't include). */
 export const LANGUAGES = ["English", "Yoruba", "Igbo", "Pidgin"] as const;
 
-/** Marquee is Nollywood only (no Kannywood or other industries). */
+/** Watch Nollywood is Nollywood only (no Kannywood or other industries). */
 export const INDUSTRIES = ["Nollywood"] as const;
 
 export const MAX_GENRES_PER_FILM = 3;

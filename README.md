@@ -1,4 +1,4 @@
-# Marquee
+# Watch Nollywood
 
 Discover, rate and review Nollywood films. A full-stack implementation of the
 [Marquee design](https://claude.ai/artifact/BdnW5QZBJ3wfMHRwMBMxAb) (home, onboarding, log in, sign up,

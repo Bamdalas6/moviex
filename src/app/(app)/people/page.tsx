@@ -89,7 +89,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Searc
           ) : (
             <EmptyState
               title="No one by that name yet"
-              body="We add the cast and directors of every film on Marquee. Check the spelling, or search films instead."
+              body="We add the cast and directors of every film on Watch Nollywood. Check the spelling, or search films instead."
               action={
                 <Link href={`/discover?q=${encodeURIComponent(q)}`} className="font-semibold underline underline-offset-4">
                   Search films for “{q}”

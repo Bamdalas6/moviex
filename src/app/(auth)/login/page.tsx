@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <AuthCard title="Welcome back" subtitle="Log in to rate, review and keep your watchlist.">
       <LoginForm next={next} />
       <p className="text-center text-[14px] text-sub">
-        New to Marquee?{" "}
+        New to Watch Nollywood?{" "}
         <Link href="/signup" className="font-semibold text-ink underline underline-offset-4">
           Create an account
         </Link>

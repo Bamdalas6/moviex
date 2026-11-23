@@ -24,7 +24,7 @@ export function SearchPill({
       {Object.entries(keep).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
       <Icon name="search" size={18} strokeWidth={2.4} className="shrink-0" />
       <label className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[12px] leading-tight font-semibold">Search Marquee</span>
+        <span className="text-[12px] leading-tight font-semibold">Search Watch Nollywood</span>
         <input
           type="search"
           name="q"

@@ -16,14 +16,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { slug } = await params;
   const data = await getChannel(slug);
   if (!data) return { title: "Channel not found" };
-  return { title: `${data.channel.name} on YouTube`, description: data.channel.description ?? `Films from ${data.channel.name} on Marquee.` };
+  return { title: `${data.channel.name} on YouTube`, description: data.channel.description ?? `Films from ${data.channel.name} on Watch Nollywood.` };
 }
 
 const KIND: Record<string, string> = {
   network: "Full Nollywood movies",
   creator: "Creator channel: full movies",
   studio: "Film studio",
-  trailers: "Posted trailers for films on Marquee",
+  trailers: "Posted trailers for films on Watch Nollywood",
 };
 
 export default async function ChannelPage({ params }: { params: Params }) {
@@ -68,7 +68,7 @@ export default async function ChannelPage({ params }: { params: Params }) {
       </section>
 
       <section className="flex flex-col gap-4">
-        <SectionHeading title={films.length ? `${plural(films.length, "film")} on Marquee from this channel` : "Films on Marquee"} />
+        <SectionHeading title={films.length ? `${plural(films.length, "film")} on Watch Nollywood from this channel` : "Films on Watch Nollywood"} />
         {films.length ? (
           <div className="grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
             {films.map((f) =>

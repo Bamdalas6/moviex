@@ -164,7 +164,7 @@ export default async function PersonPage({ params }: { params: Params }) {
               </div>
               <h1 className="text-[34px] leading-[1.05] font-bold tracking-[-1px] md:text-[48px]">{person.name}</h1>
               {person.headline && <p className="text-[15px] text-white/90 first-letter:uppercase">{person.headline}</p>}
-              <p className="text-[14px] text-white/75">{[born && `Born ${born}`, plural(person.filmCount, "film") + " on Marquee"].filter(Boolean).join(" · ")}</p>
+              <p className="text-[14px] text-white/75">{[born && `Born ${born}`, plural(person.filmCount, "film") + " on Watch Nollywood"].filter(Boolean).join(" · ")}</p>
               <div className="mt-3 flex flex-wrap justify-center gap-2.5 md:justify-start">
                 {youtube ? (
                   <a href={youtube.url} target="_blank" rel="noopener noreferrer" className={buttonClass("white", "lg", "gap-2")}>
@@ -194,7 +194,7 @@ export default async function PersonPage({ params }: { params: Params }) {
       <div className="mx-auto max-w-6xl px-5 md:px-8">
         <Section title="Career at a glance" className="border-t-0">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Films on Marquee" value={person.filmCount} />
+            <Stat label="Films on Watch Nollywood" value={person.filmCount} />
             <Stat label="Years active" value={span} />
             <Stat label={directed ? "Directed" : "Roles"} value={directed ? `${directed}${acted ? ` · acted in ${acted}` : ""}` : acted} />
             <Stat label="Languages" value={<span className="text-[17px]">{career.languages.join(", ") || "–"}</span>} />
@@ -283,8 +283,8 @@ export default async function PersonPage({ params }: { params: Params }) {
           </Section>
         )}
 
-        <Section title={`Filmography · ${person.filmCount}`} subtitle="Every credit on Marquee, newest first" id="filmography">
-          {person.credits.length ? <Filmography credits={person.credits} /> : <EmptyState title="No films yet" body="Their films will show up here once they're on Marquee." />}
+        <Section title={`Filmography · ${person.filmCount}`} subtitle="Every credit on Watch Nollywood, newest first" id="filmography">
+          {person.credits.length ? <Filmography credits={person.credits} /> : <EmptyState title="No films yet" body="Their films will show up here once they're on Watch Nollywood." />}
         </Section>
 
         {references.length > 0 && (

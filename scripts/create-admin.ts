@@ -15,7 +15,7 @@ import { client, db, DATABASE_URL, schema } from "./db";
  */
 async function main() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const name = process.env.ADMIN_NAME?.trim() || "Marquee Admin";
+  const name = process.env.ADMIN_NAME?.trim() || "Watch Nollywood Admin";
   const password = process.env.ADMIN_PASSWORD;
   const username = (process.env.ADMIN_USERNAME?.trim() || slugify(name).replace(/-/g, ".")).toLowerCase();
 

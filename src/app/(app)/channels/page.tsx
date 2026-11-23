@@ -8,7 +8,7 @@ import { listChannels, searchChannels } from "@/server/queries/people";
 
 export const metadata: Metadata = {
   title: "Nollywood on YouTube",
-  description: "YouTube channels that publish full Nollywood and Yoruba movies, plus the studios behind the trailers on Marquee.",
+  description: "YouTube channels that publish full Nollywood and Yoruba movies, plus the studios behind the trailers on Watch Nollywood.",
 };
 
 type SearchParams = Promise<{ q?: string | string[]; lang?: string | string[]; all?: string | string[] }>;
@@ -86,7 +86,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Sea
         <section className="flex flex-col gap-4">
           <SectionHeading
             title="Studios and trailer channels"
-            subtitle={`${allTrailerChannels.length} channels posted trailers for films on Marquee${trailerChannels.length < allTrailerChannels.length ? " · most films first" : ""}`}
+            subtitle={`${allTrailerChannels.length} channels posted trailers for films on Watch Nollywood${trailerChannels.length < allTrailerChannels.length ? " · most films first" : ""}`}
             href={trailerChannels.length < allTrailerChannels.length ? allHref : undefined}
             linkLabel={`Show all ${allTrailerChannels.length}`}
           />
@@ -99,7 +99,7 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Sea
       )}
 
       <p className="text-[13px] text-sub">
-        Marquee links to these channels and isn&apos;t affiliated with them or with YouTube.
+        Watch Nollywood links to these channels and isn&apos;t affiliated with them or with YouTube.
       </p>
     </PageShell>
   );

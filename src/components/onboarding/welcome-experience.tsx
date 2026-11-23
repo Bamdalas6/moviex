@@ -125,7 +125,7 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
       role={overlay ? "dialog" : undefined}
       data-onboarding-open={overlay && !leaving ? "" : undefined}
       aria-modal={overlay || undefined}
-      aria-label={overlay ? "Welcome to Marquee" : undefined}
+      aria-label={overlay ? "Welcome to Watch Nollywood" : undefined}
       className={cn(
         "fixed inset-0 z-[70] overflow-hidden bg-black text-white transition-[opacity,transform] duration-300 ease-out",
         leaving && "pointer-events-none scale-[1.03] opacity-0",
@@ -190,7 +190,7 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
         >
           <BrandLogo width={200} />
         </div>
-        <h1 className={cn("text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[34px]", rise("delay-150"))}>Welcome to Marquee.</h1>
+        <h1 className={cn("text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[34px]", rise("delay-150"))}>Welcome to Watch Nollywood.</h1>
         <p className={cn("mt-3 max-w-[330px] text-[15.5px] leading-relaxed text-white/70", rise("delay-250"))}>
           Discover Nollywood films you&apos;ll love, rate what you watch, and follow the stars behind them.
         </p>

@@ -12,9 +12,9 @@ const appFont = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Marquee — Nollywood rated by real fans", template: "%s · Marquee" },
+  title: { default: "Watch Nollywood — films rated by real fans", template: "%s · Watch Nollywood" },
   description: "Discover, rate and review the best of Nollywood.",
-  applicationName: "Marquee",
+  applicationName: "Watch Nollywood",
 };
 
 export const viewport: Viewport = {
