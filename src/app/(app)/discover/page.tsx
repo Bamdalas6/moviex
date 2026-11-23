@@ -9,7 +9,8 @@ import { LANGUAGES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { discoverSearchSchema } from "@/lib/validation";
 import { getCurrentUser } from "@/server/auth/session";
-import { listFilms, savedFilmIds } from "@/server/queries/films";
+import { MoreFilms } from "@/components/film/more-films";
+import { countFilms, listFilms, savedFilmIds } from "@/server/queries/films";
 import { listPeople, searchChannels, searchPeople } from "@/server/queries/people";
 import { ChannelCard, PersonPhoto, PersonResult } from "@/components/people/people-ui";
 import { TopPerson } from "@/components/people/top-person";
@@ -31,9 +32,14 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
   };
 
   const user = await getCurrentUser();
-  const [results, featured, boxOffice, streaming, everything, directors, savedIds] = await Promise.all([
-    filtering ? listFilms({ ...filters, sort: "top", limit: 40 }) : Promise.resolve([]),
-    listFilms({ sort: "top", limit: 10 }),
+  // Search and filters (without paging), passed to /api/films so the swiper and grid can keep loading.
+  const filterQuery = { q: filters.q, genre: filters.genre, industry: filters.industry, language: filters.language };
+  const moreFrom = new URLSearchParams(Object.entries(filterQuery).filter((e): e is [string, string] => Boolean(e[1]))).toString();
+
+  const [results, total, featured, boxOffice, streaming, everything, directors, savedIds] = await Promise.all([
+    filtering ? listFilms({ ...filterQuery, sort: "top", limit: 40 }) : Promise.resolve([]),
+    countFilms(filterQuery),
+    listFilms({ sort: "top", limit: 12 }),
     filtering ? Promise.resolve([]) : listFilms({ sort: "box-office", limit: 6 }),
     filtering ? Promise.resolve([]) : listFilms({ streaming: true, sort: "top", limit: 10 }),
     filtering ? Promise.resolve([]) : listFilms({ sort: "recent", limit: 20 }),
@@ -56,8 +62,10 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
         })
       : undefined;
 
-  // The deck follows your search: swipe through the matches, or the top films when nothing is filtered.
-  const deck = filtering && results.length ? results.slice(0, 12) : featured;
+  // The deck follows your search: swipe through every match (it loads more as you go), or every film,
+  // top rated first, when nothing is filtered or nothing matched (so the search box always shows).
+  const showMatches = filtering && results.length > 0;
+  const deck = showMatches ? results : featured;
   const ctx = { savedIds, signedIn: Boolean(user), returnTo: href({}) };
 
   return (
@@ -65,6 +73,9 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
       <SpotlightDeck
         key={deck.map((f) => f.id).join()}
         films={deck}
+        // No search: every film. A search with no matches: just the top films, nothing more to load.
+        total={filtering && !showMatches ? undefined : total}
+        moreFrom={filtering && !showMatches ? undefined : moreFrom}
         savedIds={savedIds}
         signedIn={Boolean(user)}
         header={
@@ -74,8 +85,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
               <div className="min-w-0">
                 <h1 className="text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[36px]">Discover</h1>
                 <p className="text-[15px] text-white/85">
-                  {filtering && results.length
-                    ? `Swipe through ${results.length} ${results.length === 1 ? "match" : "matches"}`
+                  {filtering && total
+                    ? `Swipe through ${total.toLocaleString("en")} ${total === 1 ? "match" : "matches"}`
                     : "Swipe through the best of Nollywood"}
                 </p>
               </div>
@@ -126,17 +137,20 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
         {filtering ? (
           <section aria-labelledby="results" className="flex flex-col gap-5">
             <SectionHeading
-              title={<span id="results">{results.length ? `${results.length} ${results.length === 1 ? "film" : "films"}` : "No matches"}</span>}
+              title={<span id="results">{total ? `${total.toLocaleString("en")} ${total === 1 ? "film" : "films"}` : "No matches"}</span>}
               subtitle={[filters.q && `“${filters.q}”`, filters.genre, filters.industry, filters.language].filter(Boolean).join(" · ")}
               href="/discover"
               linkLabel="Clear filters"
             />
             {results.length ? (
-              <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6 lg:grid-cols-5">
-                {results.map((film) => (
-                  <FilmCard key={film.id} film={film} ctx={ctx} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6 lg:grid-cols-5">
+                  {results.map((film) => (
+                    <FilmCard key={film.id} film={film} ctx={ctx} />
+                  ))}
+                </div>
+                <MoreFilms key={moreFrom} moreFrom={moreFrom} offset={results.length} total={total} ctx={ctx} />
+              </>
             ) : (
               <EmptyState
                 title="No films match yet"

@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, inArray, isNotNull, like, or, sql, type SQL 
 import type { Genre, Industry, Language } from "@/lib/constants";
 import type { FilmDetail, FilmSummary } from "@/lib/types";
 import { db } from "@/server/db/client";
-import { cinemas, filmGenres, filmProviders, films, ratings, users, watchlist, type Film } from "@/server/db/schema";
+import { cinemas, filmGenres, filmPeople, filmProviders, films, people, ratings, users, watchlist, type Film } from "@/server/db/schema";
 import { resolvePoster } from "@/server/storage";
 import { tmdbImage } from "@/server/tmdb/client";
 
@@ -100,13 +100,28 @@ export type FilmQuery = {
   withTrailer?: boolean;
   sort?: FilmSort;
   limit?: number;
+  /** Rows to skip, for "load more" paging. */
+  offset?: number;
 };
 
 export function listFilms(query: FilmQuery = {}): Promise<FilmSummary[]> {
   return cached(`films:${JSON.stringify(query)}`, () => loadFilms(query));
 }
 
-async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
+/** How many published films match a query (for "Swipe through 243 matches" and paging). */
+export function countFilms(query: FilmQuery = {}): Promise<number> {
+  // Paging and order don't change the count, so they stay out of the cache key.
+  const filter = { ...query, limit: undefined, offset: undefined, sort: undefined };
+  return cached(`films:count:${JSON.stringify(filter)}`, async () => {
+    const [row] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(films)
+      .where(and(...filmFilters(filter)));
+    return Number(row?.n ?? 0);
+  });
+}
+
+function filmFilters(query: FilmQuery): SQL[] {
   const where: SQL[] = [eq(films.status, "published")];
 
   if (query.q) {
@@ -118,6 +133,15 @@ async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
         like(films.director, term),
         // cast is a JSON array; a LIKE over its text is a cheap, adequate actor search
         sql`${films.cast} like ${term}`,
+        // ...and anyone credited further down the bill (up to 12 cast plus directors per film)
+        inArray(
+          films.id,
+          db
+            .select({ id: filmPeople.filmId })
+            .from(filmPeople)
+            .innerJoin(people, eq(people.id, filmPeople.personId))
+            .where(like(people.name, term)),
+        ),
       )!,
     );
   }
@@ -133,7 +157,11 @@ async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
   if (query.nowPlaying) where.push(eq(films.nowPlaying, true));
   if (query.withTrailer) where.push(isNotNull(films.trailerKey));
   if (query.sort === "box-office") where.push(isNotNull(films.boxOfficeRank));
+  return where;
+}
 
+async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
+  const where = filmFilters(query);
   const order = {
     trending: [desc(sql`coalesce(${stats.recent}, 0)`), desc(sql`coalesce(${stats.avg}, 0)`)],
     top: [desc(sql`coalesce(${stats.avg}, 0)`), desc(sql`coalesce(${stats.total}, 0)`)],
@@ -146,8 +174,10 @@ async function loadFilms(query: FilmQuery): Promise<FilmSummary[]> {
     .from(films)
     .leftJoin(stats, eq(stats.filmId, films.id))
     .where(and(...where))
-    .orderBy(...order)
-    .limit(query.limit ?? 24);
+    // Stable tie-break so paging never repeats or skips a film.
+    .orderBy(...order, asc(films.id))
+    .limit(query.limit ?? 24)
+    .offset(query.offset ?? 0);
 
   return hydrate(rows);
 }

@@ -23,7 +23,8 @@ export function Backdrop({
     <div aria-hidden="true" className={cn("pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[#111]", className)}>
       {/* parallax-layer: drifts down slower than the page as you scroll (scroll-driven CSS). */}
       <div className="parallax-layer absolute inset-0">
-      {films.map((film, i) => (
+      {/* Only layers near the active film are mounted: enough to cross-fade either way, light for long lists. */}
+      {films.map((film, i) => Math.abs(i - active) > 2 ? null : (
         <div
           key={`${film.title}-${i}`}
           className="absolute inset-0 transition-opacity duration-700 ease-out"

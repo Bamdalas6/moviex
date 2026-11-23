@@ -37,14 +37,23 @@ function frontIndex(track: HTMLElement) {
  * don't turn a mouse drag into a scroll), snapping to the nearest film on
  * release. The page backdrop is the blurred artwork of that film and
  * cross-fades as you swipe.
+ *
+ * With `moreFrom`, the row never runs out: nearing the end, it fetches the next
+ * page of matches from /api/films until all `total` have loaded.
  */
 export function SpotlightDeck({
   films,
+  total,
+  moreFrom,
   savedIds,
   signedIn,
   header,
 }: {
   films: FilmSummary[];
+  /** How many films match in all (defaults to the ones passed in). */
+  total?: number;
+  /** Query string for /api/films (search and filters, without offset) to load more from. */
+  moreFrom?: string;
   savedIds: string[];
   signedIn: boolean;
   /** Rendered on top of the backdrop, above the cards (title, search…). */
@@ -53,6 +62,10 @@ export function SpotlightDeck({
   const trackRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
   const [active, setActive] = useState(0);
+  const [items, setItems] = useState(films);
+  const loading = useRef(false);
+  const count = Math.max(total ?? 0, items.length);
+  const hasMore = moreFrom !== undefined && items.length < count;
   // Mouse drag-to-swipe: where the drag started, and whether it moved far enough to count as a drag.
   const drag = useRef<{ x: number; left: number; start: number; moved: boolean } | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -67,6 +80,25 @@ export function SpotlightDeck({
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(measure);
   };
+
+  // Load the next page when the front card is within a few of the end.
+  useEffect(() => {
+    if (!hasMore || loading.current || active < items.length - 5) return;
+    loading.current = true;
+    fetch(`/api/films?${moreFrom}&offset=${items.length}&limit=24`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { films: FilmSummary[] } | null) => {
+        if (!data?.films.length) return;
+        setItems((prev) => {
+          const seen = new Set(prev.map((f) => f.id));
+          return [...prev, ...data.films.filter((f) => !seen.has(f.id))];
+        });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        loading.current = false;
+      });
+  }, [active, hasMore, items.length, moreFrom]);
 
   useEffect(() => {
     window.addEventListener("resize", measure);
@@ -109,7 +141,7 @@ export function SpotlightDeck({
 
   const goTo = (index: number) => {
     const track = trackRef.current;
-    const target = track?.children[Math.max(0, Math.min(films.length - 1, index))] as HTMLElement | undefined;
+    const target = track?.children[Math.max(0, Math.min(items.length - 1, index))] as HTMLElement | undefined;
     if (!track || !target) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     track.scrollTo({
@@ -118,13 +150,13 @@ export function SpotlightDeck({
     });
   };
 
-  if (!films.length) return null;
-  const film = films[active] ?? films[0]!;
+  if (!items.length) return null;
+  const film = items[active] ?? items[0]!;
   const meta = [film.year, film.genres.slice(0, 2).join(", "), film.director].filter(Boolean).join(" · ");
 
   return (
     <section aria-roledescription="carousel" aria-label="Film spotlight" className="relative isolate pb-24 text-white">
-      <Backdrop films={films} active={active} />
+      <Backdrop films={items} active={active} />
 
       <div className="mx-auto max-w-6xl px-5 pt-5 md:px-8 md:pt-8">{header}</div>
 
@@ -165,14 +197,14 @@ export function SpotlightDeck({
           // Room after the last card so it can still reach the front; snapping lands cards on the start line.
           style={{ paddingLeft: "var(--start)", paddingRight: "calc(100% - var(--card-w) - var(--start))", scrollPaddingLeft: "var(--start)" }}
         >
-          {films.map((f, i) => {
+          {items.map((f, i) => {
             const on = i === active;
             return (
               <div
                 key={f.id}
                 role="group"
                 aria-roledescription="slide"
-                aria-label={`${i + 1} of ${films.length}: ${f.title}`}
+                aria-label={`${i + 1} of ${count}: ${f.title}`}
                 className="w-[var(--card-w)] shrink-0 origin-left snap-start transition-[transform,opacity] duration-300 ease-out"
                 style={{ transform: on ? "scale(1)" : "scale(0.86)", opacity: on ? 1 : 0.6 }}
               >
@@ -203,7 +235,7 @@ export function SpotlightDeck({
           })}
         </div>
 
-        {films.length > 1 && (
+        {count > 1 && (
           <>
             <button
               type="button"
@@ -217,7 +249,7 @@ export function SpotlightDeck({
             <button
               type="button"
               onClick={() => goTo(active + 1)}
-              disabled={active === films.length - 1}
+              disabled={active >= items.length - 1 && !hasMore}
               aria-label="Next film"
               className={iconButtonClass("glass", "absolute top-1/2 right-8 hidden size-12 -translate-y-1/2 disabled:opacity-40 md:inline-flex")}
             >
@@ -227,21 +259,33 @@ export function SpotlightDeck({
         )}
       </div>
 
-      <div className="mt-2 flex justify-center gap-1.5" role="tablist" aria-label="Choose a film">
-        {films.map((f, i) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={i === active}
-            aria-label={f.title}
-            onClick={() => goTo(i)}
-            className="flex h-6 items-center"
-          >
-            <span className={cn("block h-1.5 rounded-full transition-all", i === active ? "w-5 bg-white" : "w-1.5 bg-white/50")} />
-          </button>
-        ))}
-      </div>
+      {count <= 12 ? (
+        <div className="mt-2 flex justify-center gap-1.5" role="tablist" aria-label="Choose a film">
+          {items.map((f, i) => (
+            <button
+              key={f.id}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              aria-label={f.title}
+              onClick={() => goTo(i)}
+              className="flex h-6 items-center"
+            >
+              <span className={cn("block h-1.5 rounded-full transition-all", i === active ? "w-5 bg-white" : "w-1.5 bg-white/50")} />
+            </button>
+          ))}
+        </div>
+      ) : (
+        // Too many films for dots: a counter and a thin progress bar instead.
+        <div className="mx-auto mt-2 flex w-48 flex-col items-center gap-1.5" aria-label={`Film ${active + 1} of ${count}`}>
+          <span className="text-[13px] font-semibold text-white/85 tabular-nums">
+            {active + 1} / {count.toLocaleString("en")}
+          </span>
+          <span aria-hidden="true" className="block h-1 w-full overflow-hidden rounded-full bg-white/25">
+            <span className="block h-full rounded-full bg-white transition-[width] duration-300" style={{ width: `${((active + 1) / count) * 100}%` }} />
+          </span>
+        </div>
+      )}
 
       <div className="mx-auto mt-5 flex max-w-xl flex-col items-center px-6 text-center" aria-live="polite">
         <p className="flex items-center gap-1.5 text-[14px] font-medium text-white/90">
