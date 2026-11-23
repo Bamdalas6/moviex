@@ -9,6 +9,7 @@ import { fieldErrors, profileSchema } from "@/lib/validation";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import { users } from "@/server/db/schema";
+import { rateLimit } from "@/server/rate-limit";
 
 export async function setTheme(theme: ThemePreference) {
   if (!["system", "light", "dark"].includes(theme)) return;
@@ -19,6 +20,9 @@ export async function setTheme(theme: ThemePreference) {
 
 export async function updateProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!(await rateLimit(`profile:${user.id}`, 20, 10 * 60 * 1000)).ok) {
+    return { message: "Too many changes in a short time. Please wait a few minutes and try again." };
+  }
   const raw = {
     name: String(formData.get("name") ?? ""),
     bio: String(formData.get("bio") ?? ""),

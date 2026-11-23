@@ -188,10 +188,11 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
           className={cn("mb-5", phase === "ready" ? "opacity-100" : "opacity-0")}
           style={{ filter: "drop-shadow(0 0 10px rgb(0 0 0 / 0.95)) drop-shadow(0 0 22px rgb(0 0 0 / 0.8))" }}
         >
-          <BrandLogo width={200} />
+          <BrandLogo width={240} />
         </div>
-        <h1 className={cn("text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[34px]", rise("delay-150"))}>Welcome to Watch Nollywood.</h1>
-        <p className={cn("mt-3 max-w-[330px] text-[15.5px] leading-relaxed text-white/70", rise("delay-250"))}>
+        {/* The logo says it all on screen; screen readers still get a heading. */}
+        <h1 className="sr-only">Welcome to Watch Nollywood</h1>
+        <p className={cn("max-w-[330px] text-[15.5px] leading-relaxed text-white/70", rise("delay-250"))}>
           Discover Nollywood films you&apos;ll love, rate what you watch, and follow the stars behind them.
         </p>
         <div className={cn("mt-8 flex w-full max-w-[340px] flex-col gap-2.5", rise("delay-350"))}>

@@ -7,6 +7,7 @@ import { fieldErrors, quickRatingSchema, reviewSchema } from "@/lib/validation";
 import { getCurrentUser, requireUser } from "@/server/auth/session";
 import { db } from "@/server/db/client";
 import { films, helpfulVotes, ratings, reviewReports } from "@/server/db/schema";
+import { rateLimit } from "@/server/rate-limit";
 
 async function reviewableFilm(filmId: string) {
   const [film] = await db
@@ -27,6 +28,9 @@ function revalidateFilm(slug: string) {
 /** Full rate & review form. Upserts the viewer's single rating row for the film. */
 export async function saveReview(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (!(await rateLimit(`review:${user.id}`, 30, 10 * 60 * 1000)).ok) {
+    return { message: "You're posting very quickly. Please wait a few minutes and try again." };
+  }
   const raw = {
     filmId: String(formData.get("filmId") ?? ""),
     score: formData.get("score") ?? "0",

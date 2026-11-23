@@ -104,6 +104,14 @@ export function SignupForm() {
         />
       </div>
 
+      {/* Bot trap: hidden from people and screen readers; only scripts fill it in. */}
+      <div aria-hidden="true" className="absolute -left-[10000px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
+
       <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-sub">
         <input type="checkbox" name="terms" className="mt-px size-[18px] shrink-0 accent-cta" aria-describedby="terms-error" />
         <span>

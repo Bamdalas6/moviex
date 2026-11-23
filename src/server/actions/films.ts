@@ -48,7 +48,7 @@ export async function submitFilm(_prev: UploadState, formData: FormData): Promis
     synopsis: raw.synopsis,
   };
 
-  if (!rateLimit(`upload:${user.id}`, 10, 60 * 60 * 1000).ok) {
+  if (!(await rateLimit(`upload:${user.id}`, 10, 60 * 60 * 1000)).ok) {
     return { values, message: "You've uploaded a lot this hour. Please try again later." };
   }
 

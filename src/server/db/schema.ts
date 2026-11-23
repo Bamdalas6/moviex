@@ -38,6 +38,17 @@ export const users = sqliteTable(
   (t) => [uniqueIndex("users_username_idx").on(t.username), uniqueIndex("users_email_idx").on(t.email)],
 );
 
+/**
+ * Request counters for rate limiting, shared by every server instance. `key` is a
+ * SHA-256 of the scope plus IP / account / user, so no raw IPs or emails are stored.
+ */
+export const rateLimits = sqliteTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  /** Epoch ms when this window ends and the count starts again. */
+  resetAt: integer("reset_at").notNull(),
+});
+
 export const sessions = sqliteTable(
   "sessions",
   {
