@@ -3,14 +3,14 @@ import { Icon } from "@/components/icons";
 
 /**
  * The login / sign-up card: app icon, a centred title and one line of copy,
- * then the form. Solid (frosted at the edges) so it stands clear of the
- * moving poster wall behind it.
+ * then the form. Frosted glass: the moving poster wall shows through, blurred,
+ * and it's compact enough that either form fits on one screen without scrolling.
  */
 export function AuthCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
     <main
       id="main"
-      className="relative w-full max-w-[440px] self-start rounded-[28px] bg-card/95 px-6 pt-8 pb-7 shadow-[0_40px_120px_rgb(0_0_0/0.7),0_0_0_1px_rgb(255_255_255/0.08)] backdrop-blur-2xl md:self-auto md:px-9 md:pt-10 md:pb-9"
+      className="theme-dark relative w-full max-w-[440px] rounded-[28px] bg-card/60 px-5 pt-5 pb-4 shadow-[0_40px_120px_rgb(0_0_0/0.6),0_0_0_1px_rgb(255_255_255/0.12)] backdrop-blur-2xl backdrop-saturate-150 md:max-w-[520px] md:px-8 md:pt-7 md:pb-7"
     >
       {/* Soft brand glow and a light top edge: the card catches the light. */}
       <div
@@ -22,16 +22,16 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
 
       <div className="flex flex-col items-center text-center">
         <span
-          className="flex size-14 items-center justify-center rounded-[18px] text-white shadow-[0_10px_28px_rgb(29_60_245/0.45)]"
+          className="flex size-10 items-center justify-center rounded-[13px] md:size-11 md:rounded-[14px] text-white shadow-[0_10px_28px_rgb(29_60_245/0.45)]"
           style={{ background: "linear-gradient(150deg, #5b74ff 0%, #1d3cf5 55%, #0f22b8 100%)" }}
         >
-          <Icon name="ticket" size={28} strokeWidth={2.3} />
+          <Icon name="ticket" size={22} strokeWidth={2.3} />
         </span>
-        <h1 className="mt-5 text-[26px] leading-tight font-bold tracking-[-0.6px]">{title}</h1>
-        <p className="mt-1.5 max-w-[320px] text-[15px] leading-relaxed text-sub">{subtitle}</p>
+        <h1 className="mt-3 text-[23px] leading-tight font-bold tracking-[-0.5px]">{title}</h1>
+        <p className="mt-1 max-w-[340px] text-[14px] leading-snug text-sub [@media(max-height:700px)]:hidden">{subtitle}</p>
       </div>
 
-      <div className="mt-7 flex flex-col gap-5">{children}</div>
+      <div className="mt-4 flex flex-col gap-3.5 md:mt-5 md:gap-4">{children}</div>
     </main>
   );
 }

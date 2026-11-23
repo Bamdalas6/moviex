@@ -62,6 +62,22 @@
   color-scheme: dark;
 }
 
+/* An area that is always dark, whatever the theme (e.g. the login card over the poster wall). The tokens
+   switch to the dark palette inside it; secondary text is a step brighter so it reads on frosted glass. */
+.theme-dark {
+  --page: #0f0f11;
+  --ink: #f4f4f5;
+  --sub: #c4c4cc;
+  --card: #141417;
+  --field: #232328;
+  --line: rgb(255 255 255 / 0.14);
+  --card-line: rgb(255 255 255 / 0.22);
+  --idle: #6b6b75;
+  --off: #3a3a40;
+  color: var(--ink);
+  color-scheme: dark;
+}
+
 @theme inline {
   --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
   --color-page: var(--page);

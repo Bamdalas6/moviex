@@ -19,9 +19,11 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   hint?: ReactNode;
   aside?: ReactNode;
   prefix?: string;
+  /** Shorter (48px), slightly see-through field for the login / sign-up card. */
+  compact?: boolean;
 };
 
-export function TextField({ label, errors, hint, aside, prefix, className, ...input }: FieldProps) {
+export function TextField({ label, errors, hint, aside, prefix, compact, className, ...input }: FieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
   const invalid = Boolean(errors?.length);
@@ -30,7 +32,7 @@ export function TextField({ label, errors, hint, aside, prefix, className, ...in
       id={id}
       aria-invalid={invalid}
       aria-describedby={invalid ? errorId : undefined}
-      className={cn(inputClass, prefix && "h-full border-0 bg-transparent px-0 focus:border-0 focus:ring-0", className)}
+      className={cn(inputClass, compact && "h-12 bg-card/70", prefix && "h-full border-0 bg-transparent px-0 focus:border-0 focus:ring-0", className)}
       {...input}
     />
   );
@@ -46,7 +48,8 @@ export function TextField({ label, errors, hint, aside, prefix, className, ...in
       {prefix ? (
         <div
           className={cn(
-            "flex h-14 items-center gap-0.5 rounded-xl border border-card-line bg-card px-4 focus-within:border-ink focus-within:ring-1 focus-within:ring-ink",
+            "flex items-center gap-0.5 rounded-xl border border-card-line px-4 focus-within:border-ink focus-within:ring-1 focus-within:ring-ink",
+            compact ? "h-12 bg-card/70" : "h-14 bg-card",
             invalid && "border-accent",
           )}
         >

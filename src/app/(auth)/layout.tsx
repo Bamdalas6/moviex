@@ -15,11 +15,12 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     <div className="relative isolate flex min-h-dvh flex-col">
       <PosterWall posters={posters} />
       <header className="border-b border-white/10 bg-black/45 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center px-5 md:h-20 md:px-8">
+        <div className="mx-auto flex h-14 max-w-6xl items-center px-5 md:h-16 md:px-8">
           <Logo onDark />
         </div>
       </header>
-      <div className="flex flex-1 justify-center px-4 py-6 md:items-center md:px-0 md:py-12">{children}</div>
+      {/* Centred in the space under the header; compact enough that the whole form fits without scrolling. */}
+      <div className="flex flex-1 items-center justify-center px-4 py-3 md:px-0 md:py-6">{children}</div>
     </div>
   );
 }
