@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { WELCOMED_COOKIE } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
-import { EyeGlyph, EyeMark } from "@/components/brand/eye-mark";
 
 export type RunwayPoster = { src: string; title: string };
 
@@ -13,23 +12,20 @@ type Phase = "splash" | "morph" | "ready";
 
 const SPLASH_MS = 1300;
 const MORPH_MS = 850;
-/** Width of the eye on the splash; it shrinks to 55% of the icon as the splash becomes the icon. */
-const SPLASH_EYE = 110;
+/** Logo width on the splash (its native size); it shrinks to the logo above the headline. */
+const SPLASH_LOGO = 265;
+const LOGO_SRC = "/brand/watch-nollywood-on-dark.png";
 const EASE = "cubic-bezier(0.7, 0, 0.2, 1)";
 
-/** The app icon: the orange eye from the Watch Nollywood logo. */
-function AppIcon({ size, className }: { size: number; className?: string }) {
-  return (
-    <span className={cn("block rounded-full shadow-[0_12px_32px_rgb(255_119_0/0.45)]", className)} style={{ width: size, height: size }}>
-      <EyeMark size={size} />
-    </span>
-  );
+/** The Watch Nollywood logo, `width` px wide. */
+function BrandLogo({ width }: { width: number }) {
+  return <Image src={LOGO_SRC} alt="" width={265} height={71} priority unoptimized style={{ width, height: "auto" }} />;
 }
 
 /**
  * Onboarding, in three beats:
- * 1. Splash: the full screen is the brand gradient with the logo breathing.
- * 2. Morph: the splash shrinks into the app icon above the headline while the
+ * 1. Splash: the full screen is black with the logo breathing.
+ * 2. Morph: the splash shrinks into the logo above the headline while the
  *    welcome copy and buttons rise in.
  * 3. Runway: real posters stream down a tilted 3D plane from a vanishing point,
  *    fading into black behind the copy, on a loop.
@@ -63,11 +59,11 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
     const anim = splash.animate(
       [
         { top: "0px", left: "0px", width: `${window.innerWidth}px`, height: `${window.innerHeight}px`, borderRadius: "0px" },
-        { top: `${to.top}px`, left: `${to.left}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: "50%" },
+        { top: `${to.top}px`, left: `${to.left}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: "12px" },
       ],
       { duration: MORPH_MS, easing: EASE, fill: "forwards" },
     );
-    glyphRef.current?.animate([{ transform: "scale(1)" }, { transform: `scale(${(to.width * 0.55) / SPLASH_EYE})` }], {
+    glyphRef.current?.animate([{ transform: "scale(1)" }, { transform: `scale(${to.width / SPLASH_LOGO})` }], {
       duration: MORPH_MS,
       easing: EASE,
       fill: "forwards",
@@ -186,8 +182,13 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
         id={overlay ? undefined : "main"}
         className="absolute inset-x-0 bottom-0 flex flex-col items-center px-7 pb-[max(2rem,env(safe-area-inset-bottom))] text-center"
       >
-        <div ref={iconRef} className={cn("mb-5", phase === "ready" ? "opacity-100" : "opacity-0")}>
-          <AppIcon size={76} />
+        {/* A dark halo keeps the logo readable over the posters behind it. */}
+        <div
+          ref={iconRef}
+          className={cn("mb-5", phase === "ready" ? "opacity-100" : "opacity-0")}
+          style={{ filter: "drop-shadow(0 0 10px rgb(0 0 0 / 0.95)) drop-shadow(0 0 22px rgb(0 0 0 / 0.8))" }}
+        >
+          <BrandLogo width={200} />
         </div>
         <h1 className={cn("text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[34px]", rise("delay-150"))}>Welcome to Marquee.</h1>
         <p className={cn("mt-3 max-w-[330px] text-[15.5px] leading-relaxed text-white/70", rise("delay-250"))}>
@@ -225,14 +226,14 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
           role="presentation"
           onClick={morph}
           className="fixed top-0 left-0 z-10 flex h-dvh w-screen cursor-pointer items-center justify-center overflow-hidden"
-          style={{ background: "linear-gradient(170deg, #ff9a3d 0%, #ff7700 45%, #c85400 100%)" }}
+          style={{ background: "radial-gradient(45% 35% at 50% 50%, rgb(255 119 0 / 0.22), transparent 70%), #000" }}
         >
           <span ref={glyphRef} className="flex items-center justify-center text-white">
             <span className={phase === "splash" ? "splash-breathe" : undefined}>
-              <EyeGlyph width={SPLASH_EYE} />
+              <BrandLogo width={SPLASH_LOGO} />
             </span>
           </span>
-          <span className="sr-only">Marquee</span>
+          <span className="sr-only">Watch Nollywood</span>
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
-import { EyeMark } from "@/components/brand/eye-mark";
 
 /**
- * The login / sign-up card: app icon, a centred title and one line of copy,
+ * The login / sign-up card: the Watch Nollywood logo, a centred title and one line of copy,
  * then the form. Frosted glass: the moving poster wall shows through, blurred,
  * and it's compact enough that either form fits on one screen without scrolling.
  */
@@ -21,11 +21,7 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
       <div className="flex flex-col items-center text-center">
-        <span
-          className="flex size-10 items-center justify-center rounded-full md:size-11 text-white shadow-[0_10px_28px_rgb(255_119_0/0.4)]"
-        >
-          <EyeMark size={44} className="size-full" />
-        </span>
+        <Image src="/brand/watch-nollywood-on-dark.png" alt="Watch Nollywood" width={265} height={71} priority className="h-10 w-auto md:h-11" />
         <h1 className="mt-3 text-[23px] leading-tight font-bold tracking-[-0.5px]">{title}</h1>
         <p className="mt-1 max-w-[340px] text-[14px] leading-snug text-sub [@media(max-height:700px)]:hidden">{subtitle}</p>
       </div>
