@@ -121,37 +121,56 @@ export function popularPeople(limit = 12): Promise<PersonCard[]> {
 export type PeopleGroup = "all" | "actresses" | "actors" | "directors";
 export type PeopleSort = "rank" | "name" | "popular";
 
-const directorCredits = sql`(select count(*) from film_people fp join films f on f.id = fp.film_id where fp.person_id = "people"."id" and fp.role = 'director' and f.status = 'published')`;
+/**
+ * Directors with 2+ published films, as a derived table: credits are grouped once (one pass over
+ * film_people) instead of counting each of the ~5,000 people separately, which took seconds on Turso.
+ */
+const directed = db
+  .select({ personId: filmPeople.personId, n: sql<number>`count(distinct ${filmPeople.filmId})`.as("directed_n") })
+  .from(filmPeople)
+  .innerJoin(films, and(eq(films.id, filmPeople.filmId), eq(films.status, "published")))
+  .where(eq(filmPeople.role, "director"))
+  .groupBy(filmPeople.personId)
+  .having(sql`count(distinct ${filmPeople.filmId}) >= 2`)
+  .as("directed");
 
 /** One page of the people directory: the Nollywood collection, or directors with 2+ films. */
 export function listPeople(opts: { group: PeopleGroup; sort: PeopleSort; page: number; perPage: number; letter?: string }) {
   return cached(`people:list:${JSON.stringify(opts)}`, async () => {
+    const directors = opts.group === "directors";
     const where: SQL[] = [];
-    if (opts.group === "directors") where.push(sql`${directorCredits} >= 2`);
-    else where.push(isNotNull(people.rank));
+    if (!directors) where.push(isNotNull(people.rank));
     if (opts.group === "actresses") where.push(eq(people.gender, 1));
     if (opts.group === "actors") where.push(eq(people.gender, 2));
     if (opts.letter) where.push(like(people.name, `${opts.letter}%`));
+    const filter = where.length ? and(...where) : undefined;
 
     const order =
       opts.sort === "name"
         ? [asc(people.name)]
         : opts.sort === "popular"
           ? [desc(people.popularity)]
-          : opts.group === "directors"
-            ? [desc(directorCredits), desc(people.popularity)]
+          : directors
+            ? [desc(directed.n), desc(people.popularity)]
             : [asc(people.rank)];
 
-    const [rows, [total]] = await Promise.all([
-      db
-        .select({ person: people, count: filmCount })
-        .from(people)
-        .where(and(...where))
-        .orderBy(...order)
-        .limit(opts.perPage)
-        .offset((opts.page - 1) * opts.perPage),
-      db.select({ n: sql<number>`count(*)` }).from(people).where(and(...where)),
-    ]);
+    const page = (opts.page - 1) * opts.perPage;
+    const [rows, [total]] = directors
+      ? await Promise.all([
+          db
+            .select({ person: people, count: filmCount })
+            .from(people)
+            .innerJoin(directed, eq(directed.personId, people.id))
+            .where(filter)
+            .orderBy(...order)
+            .limit(opts.perPage)
+            .offset(page),
+          db.select({ n: sql<number>`count(*)` }).from(people).innerJoin(directed, eq(directed.personId, people.id)).where(filter),
+        ])
+      : await Promise.all([
+          db.select({ person: people, count: filmCount }).from(people).where(filter).orderBy(...order).limit(opts.perPage).offset(page),
+          db.select({ n: sql<number>`count(*)` }).from(people).where(filter),
+        ]);
     return { people: rows.map((r) => toCard(r.person, r.count)), total: Number(total?.n ?? 0) };
   });
 }
