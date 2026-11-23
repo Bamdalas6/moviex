@@ -335,6 +335,25 @@ body:has([data-onboarding-open]) [data-app-chrome] {
   will-change: transform;
 }
 
+/* Logo: dark lettering on light backgrounds, light lettering on dark ones (same rules as the theme tokens). */
+.logo-on-dark {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-on-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .logo-on-dark {
+    display: block;
+  }
+}
+:root[data-theme="dark"] .logo-on-light {
+  display: none;
+}
+:root[data-theme="dark"] .logo-on-dark {
+  display: block;
+}
+
 .runway-track {
   animation: runway-scroll 48s linear infinite;
   will-change: transform;

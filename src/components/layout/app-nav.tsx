@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -21,11 +22,24 @@ const TABS: { label: string; href: string; icon: IconName; match: (p: string) =>
   { label: "Profile", href: "/profile", icon: "profile", match: (p) => p.startsWith("/profile") || p.startsWith("/u/") },
 ];
 
-export function Logo({ className }: { className?: string }) {
+/**
+ * The Watch Nollywood wordmark. Dark lettering on light backgrounds and light lettering on dark ones,
+ * following the theme; `onDark` forces the light version (e.g. over the login page's poster wall).
+ */
+export function Logo({ className, onDark = false }: { className?: string; onDark?: boolean }) {
   return (
-    <Link href="/" className={cn("flex items-center gap-2 text-cta", className)}>
-      <Icon name="ticket" size={30} strokeWidth={2.2} />
-      <span className="text-[22px] font-bold tracking-[-0.5px]">marquee</span>
+    <Link href="/" aria-label="Watch Nollywood home" className={cn("flex shrink-0 items-center", className)}>
+      {!onDark && (
+        <Image src="/brand/watch-nollywood-on-light.png" alt="" width={265} height={71} priority className="logo-on-light h-9 w-auto md:h-10" />
+      )}
+      <Image
+        src="/brand/watch-nollywood-on-dark.png"
+        alt=""
+        width={265}
+        height={71}
+        priority
+        className={cn("h-9 w-auto md:h-10", !onDark && "logo-on-dark")}
+      />
     </Link>
   );
 }

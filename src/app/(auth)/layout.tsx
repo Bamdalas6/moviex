@@ -16,7 +16,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
       <PosterWall posters={posters} />
       <header className="border-b border-white/10 bg-black/45 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-5 md:h-20 md:px-8">
-          <Logo />
+          <Logo onDark />
         </div>
       </header>
       <div className="flex flex-1 justify-center px-4 py-6 md:items-center md:px-0 md:py-12">{children}</div>
