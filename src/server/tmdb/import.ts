@@ -15,13 +15,15 @@ import {
   type TmdbMovieDetail,
   type TmdbPerson,
 } from "./client";
+import { LISTED_NOLLYWOOD_TMDB_IDS } from "./listed-films";
 import { importPeople, type Credit, type LightPerson } from "./people";
 
 /**
- * Imports Nollywood from TMDB, and only Nollywood: every Nigerian film TMDB
- * lists (with a poster), including Hausa-language Kannywood, with posters,
- * cast/crew, genres, trailers, streaming in Nigeria and the "now playing in
- * Nigerian cinemas" list. Then it builds the
+ * Imports Nollywood from TMDB, and only Nollywood (no Kannywood or other
+ * industries): every Nigerian film TMDB lists with a poster, plus the
+ * cross-checked films its Nigeria listing misses (listed-films.ts), with
+ * posters, cast/crew, genres, trailers, streaming in Nigeria and the "now
+ * playing in Nigerian cinemas" list. Then it builds the
  * Nollywood collection: the most-credited actors and actresses with full
  * profiles and complete filmographies.
  *
@@ -48,7 +50,8 @@ export type ImportedFilm = {
   tmdbVotes: number;
 };
 
-type Hint = { curated?: CuratedFilm; nowPlaying?: boolean };
+/** `listed`: on the cross-checked list of Nollywood films that TMDB's Nigeria listing misses. */
+type Hint = { curated?: CuratedFilm; nowPlaying?: boolean; listed?: boolean };
 
 const REGION = "NG";
 
@@ -164,16 +167,23 @@ export async function importFromTmdb(
   // 3. What's in Nigerian cinemas right now.
   take((await tmdb.nowPlaying(REGION)).results, 40, { nowPlaying: true });
 
+  // 3b. Nollywood films TMDB doesn't tag as Nigerian (cross-checked list; poster and date are checked below).
+  for (const id of LISTED_NOLLYWOOD_TMDB_IDS) candidates.set(id, { ...candidates.get(id), listed: true });
+
   log(`Fetching details for ${candidates.size} films from TMDB …`);
+  // Nollywood only: Hausa-language (Kannywood) and other industries are left out. The cross-checked
+  // list only vouches for films TMDB gives no industry at all; a film tagged Ghana stays out.
   const isNigerian = (d: TmdbMovieDetail) => {
-    const industry = candidates.get(d.id)?.curated?.industry ?? industryFor(d);
-    return industry === "Nollywood" || industry === "Kannywood";
+    if (d.original_language === "ha") return false;
+    const hint = candidates.get(d.id);
+    const industry = hint?.curated?.industry ?? industryFor(d);
+    return industry === "Nollywood" || (industry === null && Boolean(hint?.listed));
   };
   const details = new Map<number, TmdbMovieDetail>();
   const fetchDetails = async (ids: number[]) => {
     const got = await mapLimit(ids, 8, (id) => tmdb.movie(id).catch(() => null));
     for (const d of got) {
-      // Nollywood only: Nigerian films (Kannywood included). Cinema lists and filmographies can contain others.
+      // Cinema lists and filmographies can contain other industries: only Nollywood gets through.
       if (d && !d.adult && d.poster_path && d.release_date && isNigerian(d)) details.set(d.id, d);
     }
   };

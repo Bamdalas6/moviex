@@ -14,23 +14,11 @@ export const GENRES = [
   "Documentary",
 ] as const;
 
-export const LANGUAGES = [
-  "English",
-  "Yoruba",
-  "Igbo",
-  "Hausa",
-  "Pidgin",
-  "Twi",
-  "Swahili",
-  "French",
-  "Zulu",
-  "Xhosa",
-  "Afrikaans",
-  "Wolof",
-] as const;
+/** Nollywood's languages (Hausa-language films are Kannywood, which Marquee doesn't include). */
+export const LANGUAGES = ["English", "Yoruba", "Igbo", "Pidgin"] as const;
 
-/** Marquee is Nollywood only: Nigerian films, including Hausa-language Kannywood. */
-export const INDUSTRIES = ["Nollywood", "Kannywood"] as const;
+/** Marquee is Nollywood only (no Kannywood or other industries). */
+export const INDUSTRIES = ["Nollywood"] as const;
 
 export const MAX_GENRES_PER_FILM = 3;
 export const REVIEW_BODY_MAX = 500;

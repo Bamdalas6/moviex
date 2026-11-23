@@ -5,7 +5,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ChipPicker, ChipRadio, FieldError, FormMessage, Switch, TextAreaField, TextField } from "@/components/ui/form";
 import { buttonClass, cardClass } from "@/components/ui/styles";
-import { GENRES, INDUSTRIES, LANGUAGES, MAX_GENRES_PER_FILM, POSTER_MAX_BYTES, POSTER_MIME_TYPES } from "@/lib/constants";
+import { GENRES, LANGUAGES, MAX_GENRES_PER_FILM, POSTER_MAX_BYTES, POSTER_MIME_TYPES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { submitFilm, type UploadState } from "@/server/actions/films";
 
@@ -212,7 +212,6 @@ export function UploadForm() {
           errors={errors.genres}
         />
         <ChipRadio name="language" legend="Main language" options={LANGUAGES} defaultValue={(v.language as string) || "English"} errors={errors.language} />
-        <ChipRadio name="industry" legend="Industry" options={INDUSTRIES} defaultValue="Nollywood" />
         <TextAreaField label="Synopsis" name="synopsis" rows={3} maxLength={600} placeholder="A short, spoiler-free summary" defaultValue={v.synopsis as string} errors={errors.synopsis} />
       </section>
 

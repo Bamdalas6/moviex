@@ -57,6 +57,13 @@
       "when": 1795426616366,
       "tag": "0007_nollywood_only",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795428803300,
+      "tag": "0008_no_kannywood",
+      "breakpoints": true
     }
   ]
 }
