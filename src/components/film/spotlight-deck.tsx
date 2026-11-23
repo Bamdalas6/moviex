@@ -101,6 +101,8 @@ export function SpotlightDeck({
   }, [active, hasMore, items.length, moreFrom]);
 
   useEffect(() => {
+    // The browser may restore the row's scroll position on reload: sync the front film once on load.
+    frame.current = requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
     return () => {
       window.removeEventListener("resize", measure);
@@ -259,7 +261,8 @@ export function SpotlightDeck({
         )}
       </div>
 
-      {count <= 12 ? (
+      {/* Dots for short lists only; long lists (search results, every film) show no position indicator. */}
+      {count <= 12 && (
         <div className="mt-2 flex justify-center gap-1.5" role="tablist" aria-label="Choose a film">
           {items.map((f, i) => (
             <button
@@ -274,16 +277,6 @@ export function SpotlightDeck({
               <span className={cn("block h-1.5 rounded-full transition-all", i === active ? "w-5 bg-white" : "w-1.5 bg-white/50")} />
             </button>
           ))}
-        </div>
-      ) : (
-        // Too many films for dots: a counter and a thin progress bar instead.
-        <div className="mx-auto mt-2 flex w-48 flex-col items-center gap-1.5" aria-label={`Film ${active + 1} of ${count}`}>
-          <span className="text-[13px] font-semibold text-white/85 tabular-nums">
-            {active + 1} / {count.toLocaleString("en")}
-          </span>
-          <span aria-hidden="true" className="block h-1 w-full overflow-hidden rounded-full bg-white/25">
-            <span className="block h-full rounded-full bg-white transition-[width] duration-300" style={{ width: `${((active + 1) / count) * 100}%` }} />
-          </span>
         </div>
       )}
 
