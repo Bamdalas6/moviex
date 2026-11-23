@@ -11,11 +11,29 @@ import { Tilt } from "@/components/motion/effects";
 import { Backdrop } from "./backdrop";
 import { HeartButton } from "./heart-button";
 
+/** Index of the card whose centre is closest to the track's centre. */
+function centredIndex(track: HTMLElement) {
+  const center = track.scrollLeft + track.clientWidth / 2;
+  let best = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  Array.from(track.children).forEach((child, i) => {
+    const el = child as HTMLElement;
+    const distance = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = i;
+    }
+  });
+  return best;
+}
+
 /**
  * Swipeable film spotlight. The track uses native CSS scroll-snap, so touch
  * swipes, trackpads and mouse-wheel all feel native; we only *observe* scroll
- * position to work out which film is centred. The page backdrop is the blurred
- * artwork of that film and cross-fades as you swipe.
+ * position to work out which film is centred. A mouse can drag it too (browsers
+ * don't turn a mouse drag into a scroll), snapping to the nearest film on
+ * release. The page backdrop is the blurred artwork of that film and
+ * cross-fades as you swipe.
  */
 export function SpotlightDeck({
   films,
@@ -32,22 +50,14 @@ export function SpotlightDeck({
   const trackRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
   const [active, setActive] = useState(0);
+  // Mouse drag-to-swipe: where the drag started, and whether it moved far enough to count as a drag.
+  const drag = useRef<{ x: number; left: number; start: number; moved: boolean } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragged = useRef(false);
 
   const measure = useCallback(() => {
     const track = trackRef.current;
-    if (!track) return;
-    const center = track.scrollLeft + track.clientWidth / 2;
-    let best = 0;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    Array.from(track.children).forEach((child, i) => {
-      const el = child as HTMLElement;
-      const distance = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = i;
-      }
-    });
-    setActive(best);
+    if (track) setActive(centredIndex(track));
   }, []);
 
   const onScroll = () => {
@@ -62,6 +72,37 @@ export function SpotlightDeck({
       cancelAnimationFrame(frame.current);
     };
   }, [measure]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || !trackRef.current) return;
+    drag.current = { x: e.clientX, left: trackRef.current.scrollLeft, start: active, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const track = trackRef.current;
+    if (!d || !track) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved && Math.abs(dx) < 6) return;
+    if (!d.moved) {
+      d.moved = true;
+      setDragging(true); // turns snapping off so the track follows the pointer 1:1
+      track.setPointerCapture(e.pointerId);
+    }
+    track.scrollLeft = d.left - dx;
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.moved) return;
+    dragged.current = true;
+    trackRef.current?.releasePointerCapture?.(e.pointerId);
+    setDragging(false);
+    const dx = e.clientX - d.x;
+    const card = (trackRef.current?.children[0] as HTMLElement | undefined)?.offsetWidth ?? 240;
+    // Land on the card nearest the centre; a short flick that didn't reach the next card still moves one film.
+    const to = trackRef.current ? centredIndex(trackRef.current) : d.start;
+    goTo(to === d.start && Math.abs(dx) > card / 3 ? d.start + (dx < 0 ? 1 : -1) : to);
+  };
 
   const goTo = (index: number) => {
     const track = trackRef.current;
@@ -88,6 +129,19 @@ export function SpotlightDeck({
         <div
           ref={trackRef}
           onScroll={onScroll}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onClickCapture={(e) => {
+            // The click that ends a drag must not open the film under the pointer.
+            if (dragged.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              dragged.current = false;
+            }
+          }}
+          onDragStart={(e) => e.preventDefault()}
           tabIndex={0}
           aria-label="Swipe to browse films"
           onKeyDown={(e) => {
@@ -100,7 +154,10 @@ export function SpotlightDeck({
               goTo(active - 1);
             }
           }}
-          className="scrollbar-none relative flex snap-x snap-mandatory gap-4 overflow-x-auto py-4 outline-none [--card-w:62vw] sm:[--card-w:240px] md:gap-6 md:[--card-w:260px]"
+          className={cn(
+            "scrollbar-none relative flex snap-x gap-4 overflow-x-auto py-4 outline-none select-none [--card-w:62vw] sm:[--card-w:240px] md:gap-6 md:[--card-w:260px]",
+            dragging ? "cursor-grabbing snap-none" : "cursor-grab snap-mandatory",
+          )}
           style={{ paddingInline: "calc(50% - var(--card-w) / 2)" }}
         >
           {films.map((f, i) => {

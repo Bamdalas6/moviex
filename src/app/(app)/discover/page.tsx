@@ -66,15 +66,22 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
         signedIn={Boolean(user)}
         header={
           <div className="flex flex-col gap-5">
-            <div>
-              <h1 className="text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[36px]">Discover</h1>
-              <p className="text-[15px] text-white/85">
-                {filtering && results.length
-                  ? `Swipe through ${results.length} ${results.length === 1 ? "match" : "matches"}`
-                  : "Swipe through the best of Nollywood and African cinema"}
-              </p>
+            {/* Phones stack the title over the search box; wider screens put them on one line. */}
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8">
+              <div className="min-w-0">
+                <h1 className="text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[36px]">Discover</h1>
+                <p className="text-[15px] text-white/85">
+                  {filtering && results.length
+                    ? `Swipe through ${results.length} ${results.length === 1 ? "match" : "matches"}`
+                    : "Swipe through the best of Nollywood and African cinema"}
+                </p>
+              </div>
+              <SearchPill
+                defaultValue={filters.q}
+                keep={{ genre: filters.genre, industry: filters.industry, language: filters.language }}
+                className="w-full max-w-2xl md:w-[min(520px,52%)] md:shrink-0"
+              />
             </div>
-            <SearchPill defaultValue={filters.q} keep={{ genre: filters.genre, industry: filters.industry, language: filters.language }} className="max-w-2xl" />
             {topPerson && <TopPerson person={topPerson} />}
           </div>
         }
