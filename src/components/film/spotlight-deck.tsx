@@ -11,14 +11,17 @@ import { Tilt } from "@/components/motion/effects";
 import { Backdrop } from "./backdrop";
 import { HeartButton } from "./heart-button";
 
-/** Index of the card whose centre is closest to the track's centre. */
-function centredIndex(track: HTMLElement) {
-  const center = track.scrollLeft + track.clientWidth / 2;
+/** The track's left padding: where the front card sits (lined up with the page content). */
+const startOf = (track: HTMLElement) => parseFloat(getComputedStyle(track).paddingLeft) || 0;
+
+/** Index of the card at the front of the row (its left edge closest to the start line). */
+function frontIndex(track: HTMLElement) {
+  const start = track.scrollLeft + startOf(track);
   let best = 0;
   let bestDistance = Number.POSITIVE_INFINITY;
   Array.from(track.children).forEach((child, i) => {
     const el = child as HTMLElement;
-    const distance = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
+    const distance = Math.abs(el.offsetLeft - start);
     if (distance < bestDistance) {
       bestDistance = distance;
       best = i;
@@ -30,7 +33,7 @@ function centredIndex(track: HTMLElement) {
 /**
  * Swipeable film spotlight. The track uses native CSS scroll-snap, so touch
  * swipes, trackpads and mouse-wheel all feel native; we only *observe* scroll
- * position to work out which film is centred. A mouse can drag it too (browsers
+ * position to work out which film is at the front of the row. A mouse can drag it too (browsers
  * don't turn a mouse drag into a scroll), snapping to the nearest film on
  * release. The page backdrop is the blurred artwork of that film and
  * cross-fades as you swipe.
@@ -57,7 +60,7 @@ export function SpotlightDeck({
 
   const measure = useCallback(() => {
     const track = trackRef.current;
-    if (track) setActive(centredIndex(track));
+    if (track) setActive(frontIndex(track));
   }, []);
 
   const onScroll = () => {
@@ -99,8 +102,8 @@ export function SpotlightDeck({
     setDragging(false);
     const dx = e.clientX - d.x;
     const card = (trackRef.current?.children[0] as HTMLElement | undefined)?.offsetWidth ?? 240;
-    // Land on the card nearest the centre; a short flick that didn't reach the next card still moves one film.
-    const to = trackRef.current ? centredIndex(trackRef.current) : d.start;
+    // Land on the card nearest the front; a short flick that didn't reach the next card still moves one film.
+    const to = trackRef.current ? frontIndex(trackRef.current) : d.start;
     goTo(to === d.start && Math.abs(dx) > card / 3 ? d.start + (dx < 0 ? 1 : -1) : to);
   };
 
@@ -110,7 +113,7 @@ export function SpotlightDeck({
     if (!track || !target) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     track.scrollTo({
-      left: target.offsetLeft - (track.clientWidth - target.offsetWidth) / 2,
+      left: target.offsetLeft - startOf(track),
       behavior: reduce ? "auto" : "smooth",
     });
   };
@@ -155,10 +158,12 @@ export function SpotlightDeck({
             }
           }}
           className={cn(
-            "scrollbar-none relative flex snap-x gap-4 overflow-x-auto py-4 outline-none select-none [--card-w:62vw] sm:[--card-w:240px] md:gap-6 md:[--card-w:260px]",
+            // The row starts at the page's left margin (lined up with the title and search box), not the middle.
+            "scrollbar-none relative flex snap-x gap-4 overflow-x-auto py-4 outline-none select-none [--card-w:62vw] [--start:20px] sm:[--card-w:240px] md:gap-6 md:[--card-w:260px] md:[--start:max(32px,calc((100%-72rem)/2+32px))]",
             dragging ? "cursor-grabbing snap-none" : "cursor-grab snap-mandatory",
           )}
-          style={{ paddingInline: "calc(50% - var(--card-w) / 2)" }}
+          // Room after the last card so it can still reach the front; snapping lands cards on the start line.
+          style={{ paddingLeft: "var(--start)", paddingRight: "calc(100% - var(--card-w) - var(--start))", scrollPaddingLeft: "var(--start)" }}
         >
           {films.map((f, i) => {
             const on = i === active;
@@ -168,14 +173,14 @@ export function SpotlightDeck({
                 role="group"
                 aria-roledescription="slide"
                 aria-label={`${i + 1} of ${films.length}: ${f.title}`}
-                className="w-[var(--card-w)] shrink-0 snap-center transition-[transform,opacity] duration-300 ease-out"
+                className="w-[var(--card-w)] shrink-0 origin-left snap-start transition-[transform,opacity] duration-300 ease-out"
                 style={{ transform: on ? "scale(1)" : "scale(0.86)", opacity: on ? 1 : 0.6 }}
               >
                 <Link
                   href={`/films/${f.slug}`}
                   tabIndex={on ? 0 : -1}
                   onClick={(e) => {
-                    // Tapping a side card brings it to the centre instead of navigating away.
+                    // Tapping another card brings it to the front instead of navigating away.
                     if (!on) {
                       e.preventDefault();
                       goTo(i);
@@ -205,7 +210,7 @@ export function SpotlightDeck({
               onClick={() => goTo(active - 1)}
               disabled={active === 0}
               aria-label="Previous film"
-              className={iconButtonClass("glass", "absolute top-1/2 left-8 hidden size-12 -translate-y-1/2 disabled:opacity-0 md:inline-flex")}
+              className={iconButtonClass("glass", "absolute top-1/2 right-[92px] hidden size-12 -translate-y-1/2 disabled:opacity-40 md:inline-flex")}
             >
               <Icon name="chevronLeft" size={20} strokeWidth={2.4} />
             </button>
@@ -214,7 +219,7 @@ export function SpotlightDeck({
               onClick={() => goTo(active + 1)}
               disabled={active === films.length - 1}
               aria-label="Next film"
-              className={iconButtonClass("glass", "absolute top-1/2 right-8 hidden size-12 -translate-y-1/2 disabled:opacity-0 md:inline-flex")}
+              className={iconButtonClass("glass", "absolute top-1/2 right-8 hidden size-12 -translate-y-1/2 disabled:opacity-40 md:inline-flex")}
             >
               <Icon name="chevronRight" size={20} strokeWidth={2.4} />
             </button>
