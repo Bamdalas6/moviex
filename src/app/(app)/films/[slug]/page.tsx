@@ -56,7 +56,9 @@ export default async function FilmPage({ params, searchParams }: { params: Param
     film.nowPlaying ? listCinemas() : Promise.resolve([]),
     filmCredits(film.id),
   ]);
-  const castCredits = credits.filter((c) => c.role === "cast");
+  // Cast with a photo are shown as faces; anyone without one is listed by name (never as initials).
+  const castCredits = credits.filter((c) => c.role === "cast" && c.photoUrl);
+  const castByName = credits.filter((c) => c.role === "cast" && !c.photoUrl);
   const directorCredits = credits.filter((c) => c.role === "director");
   const pending = film.status !== "published";
   const canReview = film.allowReviews && !pending;
@@ -212,7 +214,7 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                 <dd className="text-[15px] font-semibold">{film.industry}</dd>
               </div>
             </dl>
-            {castCredits.length > 0 ? (
+            {castCredits.length + castByName.length > 0 ? (
               <div className="flex flex-col gap-3">
                 <h3 className="text-[14px] text-sub">Starring · tap a name for their profile, YouTube and socials</h3>
                 <ul className="scrollbar-none -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0" aria-label="Cast">
@@ -228,6 +230,19 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                     </li>
                   ))}
                 </ul>
+                {castByName.length > 0 && (
+                  <p className="text-[14px] leading-relaxed text-sub">
+                    {castCredits.length > 0 ? "Also starring " : ""}
+                    {castByName.map((c, i) => (
+                      <span key={c.slug}>
+                        {i > 0 && (i === castByName.length - 1 ? " and " : ", ")}
+                        <Link href={`/people/${c.slug}`} className="font-semibold text-ink underline-offset-4 hover:underline">
+                          {c.name}
+                        </Link>
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
             ) : film.cast.length > 0 && (
               <div className="flex flex-col gap-3">
@@ -237,9 +252,8 @@ export default async function FilmPage({ params, searchParams }: { params: Param
                     <li key={name}>
                       <Link
                         href={`/discover?q=${encodeURIComponent(name)}`}
-                        className="flex items-center gap-2 rounded-full border border-card-line py-1 pr-3.5 pl-1 text-[14px] font-medium hover:border-ink"
+                        className="flex items-center rounded-full border border-card-line px-3.5 py-1.5 text-[14px] font-medium hover:border-ink"
                       >
-                        <Avatar name={name} color="#6a6a6a" size={28} />
                         {name}
                       </Link>
                     </li>

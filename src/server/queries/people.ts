@@ -54,6 +54,8 @@ export type ChannelCard = {
   filmCount: number;
   /** A trailer from this channel, for artwork. */
   sampleTrailerKey: string | null;
+  /** The channel's own profile picture, when the import found it. */
+  avatarUrl: string | null;
 };
 
 const ROLE_LABEL: Record<string, string> = { Acting: "Actor", Directing: "Director", Writing: "Writer", Production: "Producer" };
@@ -67,6 +69,8 @@ const roleLabel = (p: Pick<Person, "knownFor" | "gender">) => {
 const photoFor = (p: Pick<Person, "tmdbProfilePath" | "photoUrl">, size: "w185" | "h632" = "w185") => tmdbImage(p.tmdbProfilePath, size) ?? p.photoUrl;
 
 const published = sql`${films.status} = 'published'`;
+/** Lists and search show faces only: people without any photo never appear as an initials circle. */
+const hasPhoto = sql`(${people.tmdbProfilePath} is not null or ${people.photoUrl} is not null)`;
 // Written with explicit table names: Drizzle leaves columns unqualified in single-table
 // queries, which would make "id" inside the subquery mean films.id instead of people.id.
 const filmCount = sql<number>`(select count(distinct fp.film_id) from film_people fp join films f on f.id = fp.film_id where fp.person_id = "people"."id" and f.status = 'published')`;
@@ -98,7 +102,7 @@ export function searchPeople(q: string, limit = 8): Promise<PersonCard[]> {
     const rows = await db
       .select({ person: people, count: filmCount })
       .from(people)
-      .where(like(people.name, term(query)))
+      .where(and(like(people.name, term(query)), hasPhoto))
       .orderBy(
         // exact name, then name starting with the query, then the most popular
         desc(sql`lower(${people.name}) = ${lower}`),
@@ -138,7 +142,7 @@ const directed = db
 export function listPeople(opts: { group: PeopleGroup; sort: PeopleSort; page: number; perPage: number; letter?: string }) {
   return cached(`people:list:${JSON.stringify(opts)}`, async () => {
     const directors = opts.group === "directors";
-    const where: SQL[] = [];
+    const where: SQL[] = [hasPhoto];
     if (!directors) where.push(isNotNull(people.rank));
     if (opts.group === "actresses") where.push(eq(people.gender, 1));
     if (opts.group === "actors") where.push(eq(people.gender, 2));
@@ -247,7 +251,7 @@ async function collaborators(personId: string, role: "cast" | "director", limit 
     from film_people mine
     join films f on f.id = mine.film_id and f.status = 'published'
     join film_people other on other.film_id = mine.film_id and other.person_id <> mine.person_id and other.role = ${role}
-    join people p on p.id = other.person_id
+    join people p on p.id = other.person_id and (p.tmdb_profile_path is not null or p.photo_url is not null)
     where mine.person_id = ${personId}
     group by p.id
     having count(distinct other.film_id) >= ${role === "cast" ? 2 : 1}
@@ -298,6 +302,7 @@ function toChannel(c: Channel, count: number, trailer: string | null): ChannelCa
     featured: c.featured,
     filmCount: Number(count),
     sampleTrailerKey: trailer,
+    avatarUrl: c.avatarUrl,
   };
 }
 

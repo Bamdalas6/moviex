@@ -2,9 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { YouTubeMark } from "@/components/film/youtube-mark";
-import { Avatar } from "@/components/ui/avatar";
 import type { SocialLink, SocialNetwork } from "@/lib/socials";
-import { cn, initials, pickByKey, plural } from "@/lib/utils";
+import { cn, pickByKey, plural } from "@/lib/utils";
 import type { ChannelCard as Channel, PersonCard as Person } from "@/server/queries/people";
 
 /** Simple monochrome glyphs (24×24) for the social buttons; YouTube uses its red play badge. */
@@ -72,9 +71,9 @@ export function SocialButtons({ links, className }: { links: SocialLink[]; class
 
 const AVATAR_COLORS = ["#E0565B", "#2F80ED", "#16A34A", "#9B51E0", "#F2994A", "#0EA5E9", "#D946EF", "#14B8A6"];
 
-/** Round photo with an initials fallback. */
-export function PersonPhoto({ name, photoUrl, size, className }: { name: string; photoUrl: string | null; size: number; className?: string }) {
-  if (!photoUrl) return <Avatar name={name} color={pickByKey(AVATAR_COLORS, name)} size={size} />;
+/** Round photo. People without one are left out of lists, so there is never an initials stand-in. */
+export function PersonPhoto({ photoUrl, size, className }: { name: string; photoUrl: string | null; size: number; className?: string }) {
+  if (!photoUrl) return null;
   return (
     <span className={cn("relative block shrink-0 overflow-hidden rounded-full bg-field", className)} style={{ width: size, height: size }}>
       <Image src={photoUrl} alt="" fill unoptimized sizes={`${size}px`} className="object-cover object-top" />
@@ -135,6 +134,22 @@ const KIND_LABEL: Record<Channel["kind"], string> = {
   trailers: "Trailers",
 };
 
+/** A channel's own profile picture; the YouTube logo when it has none. */
+export function ChannelAvatar({ channel, size, className }: { channel: Pick<Channel, "avatarUrl">; size: number; className?: string }) {
+  return (
+    <span
+      className={cn("relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-card", className)}
+      style={{ width: size, height: size }}
+    >
+      {channel.avatarUrl ? (
+        <Image src={channel.avatarUrl} alt="" fill unoptimized sizes={`${size}px`} className="object-cover" />
+      ) : (
+        <YouTubeMark size={Math.round(size * 0.5)} />
+      )}
+    </span>
+  );
+}
+
 /** YouTube channel card: opens the channel page, with a direct "Open on YouTube" link. */
 export function ChannelCard({ channel, className }: { channel: Channel; className?: string }) {
   return (
@@ -158,9 +173,7 @@ export function ChannelCard({ channel, className }: { channel: Channel; classNam
         )}
         <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
         <span className="absolute bottom-3 left-3 flex items-center gap-2.5">
-          <span className="flex size-11 items-center justify-center rounded-full bg-white text-[15px] font-bold text-[#222] shadow-card">
-            {initials(channel.name)}
-          </span>
+          <ChannelAvatar channel={channel} size={44} />
           <YouTubeMark size={22} />
         </span>
         <span className="absolute top-3 right-3 rounded-full bg-black/55 px-2.5 py-0.5 text-[11.5px] font-semibold text-white backdrop-blur-sm">

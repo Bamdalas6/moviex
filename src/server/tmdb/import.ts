@@ -16,6 +16,7 @@ import {
   type TmdbPerson,
 } from "./client";
 import { LISTED_NOLLYWOOD_TMDB_IDS } from "./listed-films";
+import { nigerianFilmPhotos, refreshMedia } from "./media";
 import { importPeople, type Credit, type LightPerson } from "./people";
 
 /**
@@ -205,7 +206,8 @@ export async function importFromTmdb(
     return [...counts.entries()].sort((a, b) => b[1].n - a[1].n || b[1].popularity - a[1].popularity);
   };
   const actorIds = tally("cast")
-    .slice(0, Math.round(collectionSize * 1.15)) // headroom: a few credited cast turn out to be crew
+    // Headroom: some credited cast turn out to be crew, and only people with a photo are ranked.
+    .slice(0, Math.round(collectionSize * 2))
     .map(([id]) => id);
   const directorIds = tally("director")
     .filter(([, t]) => t.n >= 2)
@@ -401,16 +403,18 @@ export async function importFromTmdb(
   for (const c of credits) {
     if (c.role === "cast" && nollywoodFilms.has(c.filmId)) filmsPerPerson.set(c.tmdbPersonId, (filmsPerPerson.get(c.tmdbPersonId) ?? 0) + 1);
   }
-  const ranked = actorIds
+  // Ordered candidates; importPeople ranks the first `collectionSize` of them that have a photo.
+  const rankPool = actorIds
     .filter((id) => profiles.get(id)?.known_for_department === "Acting")
     .sort(
       (a, b) =>
         (filmsPerPerson.get(b) ?? 0) - (filmsPerPerson.get(a) ?? 0) || (profiles.get(b)!.popularity ?? 0) - (profiles.get(a)!.popularity ?? 0),
-    )
-    .slice(0, collectionSize);
-  const rankOf = new Map(ranked.map((id, i) => [id, i + 1]));
-  const featured = [...new Set([...ranked, ...directorIds])].map((id) => profiles.get(id)).filter((p): p is TmdbPerson => Boolean(p));
+    );
+  const featured = [...new Set([...rankPool, ...directorIds])].map((id) => profiles.get(id)).filter((p): p is TmdbPerson => Boolean(p));
 
-  await importPeople(db, { credits, lightPeople, featured, rankOf, log });
+  const photos = await nigerianFilmPhotos();
+  await importPeople(db, { credits, lightPeople, featured, rankPool, collectionSize, photos, log });
+  // 8. Faces: YouTube channel pictures, and Wikidata photos for anyone still without one.
+  await refreshMedia(db, log, { photos });
   return imported;
 }

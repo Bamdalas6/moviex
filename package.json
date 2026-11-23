@@ -18,6 +18,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:import-tmdb": "tsx scripts/import-tmdb.ts",
+    "db:refresh-media": "tsx scripts/refresh-media.ts",
     "db:reset": "tsx scripts/reset.ts && npm run db:migrate && npm run db:seed",
     "db:studio": "drizzle-kit studio",
     "setup": "npm run db:migrate && npm run db:seed",

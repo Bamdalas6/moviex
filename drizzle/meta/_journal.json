@@ -71,6 +71,13 @@
       "when": 1795447870134,
       "tag": "0009_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795448817597,
+      "tag": "0010_channel_avatars",
+      "breakpoints": true
     }
   ]
 }

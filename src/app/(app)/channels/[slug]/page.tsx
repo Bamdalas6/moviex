@@ -5,9 +5,9 @@ import { TrailerCard } from "@/components/film/trailer";
 import { YouTubeMark } from "@/components/film/youtube-mark";
 import { Icon } from "@/components/icons";
 import { EmptyState, IconLink, PageShell, SectionHeading } from "@/components/layout/page";
-import { ChannelCard } from "@/components/people/people-ui";
+import { ChannelAvatar, ChannelCard } from "@/components/people/people-ui";
 import { buttonClass } from "@/components/ui/styles";
-import { initials, plural } from "@/lib/utils";
+import { plural } from "@/lib/utils";
 import { getChannel, listChannels } from "@/server/queries/people";
 
 type Params = Promise<{ slug: string }>;
@@ -42,9 +42,7 @@ export default async function ChannelPage({ params }: { params: Params }) {
       <section className="relative isolate overflow-hidden rounded-3xl bg-[#141414] p-6 text-white md:p-10">
         <div aria-hidden="true" className="absolute -top-24 -right-24 -z-10 size-80 rounded-full bg-[#FF0033]/30 blur-3xl" />
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
-          <span className="animate-pop flex size-24 shrink-0 items-center justify-center rounded-full bg-white text-[30px] font-bold text-[#222] shadow-lift">
-            {initials(channel.name)}
-          </span>
+          <ChannelAvatar channel={channel} size={96} className="animate-pop shadow-lift" />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <p className="flex items-center gap-2 text-[13px] font-semibold text-white/75">
               <YouTubeMark size={20} /> {KIND[channel.kind]}

@@ -146,9 +146,11 @@ export default async function PersonPage({ params }: { params: Params }) {
           </div>
 
           <div className="mt-6 flex flex-col items-center gap-6 text-center md:flex-row md:items-end md:gap-8 md:text-left">
-            <div className="hero-recede animate-pop rounded-full ring-4 ring-white/20">
-              <PersonPhoto name={person.name} photoUrl={person.photoUrl} size={176} className="shadow-[0_24px_48px_rgb(0_0_0/0.45)]" />
-            </div>
+            {person.photoUrl && (
+              <div className="hero-recede animate-pop rounded-full ring-4 ring-white/20">
+                <PersonPhoto name={person.name} photoUrl={person.photoUrl} size={176} className="shadow-[0_24px_48px_rgb(0_0_0/0.45)]" />
+              </div>
+            )}
             <div className="flex flex-col items-center gap-2 md:items-start md:pb-2">
               <div className="flex flex-wrap justify-center gap-2 md:justify-start">
                 {person.rank && (

@@ -13,7 +13,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com${dev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://image.tmdb.org https://i.ytimg.com https://upload.wikimedia.org https://thumb.wikimedia.org",
+  "img-src 'self' data: blob: https://image.tmdb.org https://i.ytimg.com https://upload.wikimedia.org https://thumb.wikimedia.org https://yt3.googleusercontent.com https://yt3.ggpht.com",
   "font-src 'self' data:",
   `connect-src 'self' https://cloudflareinsights.com${dev ? " ws: wss:" : ""}`,
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
@@ -53,6 +53,9 @@ const nextConfig: NextConfig = {
       // Actor photos from Wikimedia Commons (via Wikipedia) when TMDB has none.
       { protocol: "https", hostname: "upload.wikimedia.org" },
       { protocol: "https", hostname: "thumb.wikimedia.org" },
+      // YouTube channel pictures.
+      { protocol: "https", hostname: "yt3.googleusercontent.com" },
+      { protocol: "https", hostname: "yt3.ggpht.com" },
     ],
   },
   experimental: {

@@ -320,6 +320,8 @@ export const channels = sqliteTable(
     url: text("url").notNull(),
     description: text("description"),
     language: text("language"),
+    /** The channel's profile picture (yt3.googleusercontent.com), fetched by the import. */
+    avatarUrl: text("avatar_url"),
     kind: text("kind", { enum: ["network", "creator", "studio", "trailers"] }).notNull(),
     featured: integer("featured", { mode: "boolean" }).notNull().default(false),
     /** Lower comes first in listings. */

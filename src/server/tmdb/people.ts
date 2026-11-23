@@ -4,6 +4,7 @@ import { slugify } from "../../lib/utils";
 import * as schema from "../db/schema";
 import { runBatched, type Statement } from "./batch";
 import { mapLimit, type TmdbPerson } from "./client";
+import { photoFromIndex, type PhotoIndex } from "./media";
 import { wikidataProfiles, wikipediaSummary } from "./wiki";
 
 type Db = LibSQLDatabase<typeof schema>;
@@ -49,11 +50,14 @@ export async function importPeople(
     credits: Credit[];
     lightPeople: Map<number, LightPerson>;
     featured: TmdbPerson[];
-    rankOf: Map<number, number>;
+    /** Actors in collection order; the first `collectionSize` with a photo get a rank. */
+    rankPool: number[];
+    collectionSize: number;
+    photos: PhotoIndex;
     log: (line: string) => void;
   },
 ) {
-  const { credits, lightPeople, featured, rankOf, log } = input;
+  const { credits, lightPeople, featured, rankPool, collectionSize, photos, log } = input;
 
   // Enrichment for the collection.
   const wikidataIds = [...new Set(featured.map((p) => p.external_ids?.wikidata_id).filter((v): v is string => Boolean(v)))];
@@ -64,6 +68,17 @@ export async function importPeople(
       return [p.id, title ? await wikipediaSummary(title) : null] as const;
     }),
   );
+
+  // The collection is faces only: rank the first people in the pool who have a photo
+  // (TMDB's, their Wikipedia article's, or Wikidata's).
+  const byId = new Map(featured.map((p) => [p.id, p]));
+  const wikiPhotoOf = (p: TmdbPerson) => summaries.get(p.id)?.photoUrl ?? photoFromIndex(photos, p.id, p.name);
+  const rankOf = new Map<number, number>();
+  for (const id of rankPool) {
+    if (rankOf.size >= collectionSize) break;
+    const p = byId.get(id);
+    if (p && (p.profile_path || wikiPhotoOf(p))) rankOf.set(id, rankOf.size + 1);
+  }
 
   // Ids and slugs: one read, then everything is decided in memory.
   const existing = await db.select({ id: schema.people.id, tmdbId: schema.people.tmdbId, slug: schema.people.slug }).from(schema.people);
@@ -86,7 +101,15 @@ export async function importPeople(
     const id = idOf.get(p.tmdbId) ?? crypto.randomUUID();
     const isNew = !idOf.has(p.tmdbId);
     idOf.set(p.tmdbId, id);
-    const values = { name: p.name, tmdbProfilePath: p.profilePath, knownFor: p.knownFor, popularity: p.popularity, gender: p.gender };
+    const values = {
+      name: p.name,
+      tmdbProfilePath: p.profilePath,
+      knownFor: p.knownFor,
+      popularity: p.popularity,
+      gender: p.gender,
+      // A Wikidata photo when TMDB has none (only ever added here, never cleared).
+      ...(p.profilePath ? {} : { photoUrl: photoFromIndex(photos, p.tmdbId, p.name) ?? undefined }),
+    };
     statements.push(
       isNew
         ? db.insert(schema.people).values({ ...values, id, tmdbId: p.tmdbId, slug: slugFor(p.tmdbId, p.name) }).onConflictDoNothing()
@@ -109,7 +132,7 @@ export async function importPeople(
       bioSource: summary ? ("wikipedia" as const) : tmdbBio ? ("tmdb" as const) : null,
       wikipediaUrl: summary?.url ?? null,
       tmdbProfilePath: p.profile_path,
-      photoUrl: summary?.photoUrl ?? null,
+      photoUrl: wikiPhotoOf(p),
       birthday: p.birthday,
       placeOfBirth: p.place_of_birth,
       // Wikidata first (sourced and maintained), TMDB's external ids as the fallback.
