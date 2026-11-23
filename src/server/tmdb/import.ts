@@ -18,10 +18,10 @@ import {
 import { importPeople, type Credit, type LightPerson } from "./people";
 
 /**
- * Imports Nollywood and wider African cinema from TMDB: every Nigerian film
- * TMDB lists (with a poster), a selection from Ghana, Kenya, South Africa and
- * francophone Africa, posters, cast/crew, genres, trailers, streaming in
- * Nigeria and the "now playing in Nigerian cinemas" list. Then it builds the
+ * Imports Nollywood from TMDB, and only Nollywood: every Nigerian film TMDB
+ * lists (with a poster), including Hausa-language Kannywood, with posters,
+ * cast/crew, genres, trailers, streaming in Nigeria and the "now playing in
+ * Nigerian cinemas" list. Then it builds the
  * Nollywood collection: the most-credited actors and actresses with full
  * profiles and complete filmographies.
  *
@@ -151,11 +151,6 @@ export async function importFromTmdb(
 
   // 1. Every Nigerian film TMDB knows, most popular first.
   take(await pages({ with_origin_country: "NG", sort_by: "popularity.desc" }, opts.nigerianPages ?? 500), 100_000);
-  take(await pages({ with_origin_country: "GH" }, 2), 30);
-  take(await pages({ with_origin_country: "KE", with_original_language: "en|sw" }, 1), 12);
-  take(await pages({ with_origin_country: "ZA", with_original_language: "zu|xh|af|st|tn" }, 1), 12);
-  take(await pages({ with_origin_country: "SN" }, 1), 5);
-  take(await pages({ with_origin_country: "CI" }, 1), 4);
 
   // 2. Hand-picked titles by title + year.
   for (const film of opts.curated ?? []) {
@@ -170,20 +165,22 @@ export async function importFromTmdb(
   take((await tmdb.nowPlaying(REGION)).results, 40, { nowPlaying: true });
 
   log(`Fetching details for ${candidates.size} films from TMDB …`);
+  const isNigerian = (d: TmdbMovieDetail) => {
+    const industry = candidates.get(d.id)?.curated?.industry ?? industryFor(d);
+    return industry === "Nollywood" || industry === "Kannywood";
+  };
   const details = new Map<number, TmdbMovieDetail>();
   const fetchDetails = async (ids: number[]) => {
     const got = await mapLimit(ids, 8, (id) => tmdb.movie(id).catch(() => null));
     for (const d of got) {
-      if (d && !d.adult && d.poster_path && d.release_date && (industryFor(d) || candidates.get(d.id)?.curated)) details.set(d.id, d);
+      // Nollywood only: Nigerian films (Kannywood included). Cinema lists and filmographies can contain others.
+      if (d && !d.adult && d.poster_path && d.release_date && isNigerian(d)) details.set(d.id, d);
     }
   };
   await fetchDetails([...candidates.keys()]);
 
   // 4. The Nollywood collection: actors and actresses with the most Nigerian films, plus prolific directors.
-  const isNollywood = (d: TmdbMovieDetail) => {
-    const industry = candidates.get(d.id)?.curated?.industry ?? industryFor(d);
-    return industry === "Nollywood" || industry === "Kannywood";
-  };
+  const isNollywood = isNigerian;
   const tally = (role: "cast" | "director") => {
     const counts = new Map<number, { n: number; popularity: number }>();
     for (const d of details.values()) {
@@ -213,7 +210,7 @@ export async function importFromTmdb(
       .map((p) => [p.id, p]),
   );
 
-  // 5. Complete their filmographies: any African film of theirs we don't have yet.
+  // 5. Complete their filmographies: any Nigerian film of theirs we don't have yet.
   const missing = new Set<number>();
   for (const p of profiles.values()) {
     const entries = [...(p.movie_credits?.cast ?? []), ...(p.movie_credits?.crew ?? []).filter((c) => c.job === "Director")];
@@ -221,7 +218,7 @@ export async function importFromTmdb(
   }
   const before = details.size;
   await fetchDetails([...missing]);
-  log(`Filmographies: checked ${missing.size} more films, added ${details.size - before} African ones.`);
+  log(`Filmographies: checked ${missing.size} more films, added ${details.size - before} Nigerian ones.`);
 
   // Which YouTube channel posted each trailer (names the studio/producer channel).
   const trailerOf = (d: TmdbMovieDetail) => pickTrailer(d.videos?.results);

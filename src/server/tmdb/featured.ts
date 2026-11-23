@@ -16,6 +16,4 @@ export const FEATURED_FILMS: CuratedFilm[] = [
   { title: "Gangs of Lagos", year: 2023, industry: "Nollywood" },
   { title: "Anikulapo", year: 2022, industry: "Nollywood" },
   { title: "Jagun Jagun", year: 2023, industry: "Nollywood" },
-  { title: "Azali", year: 2018, industry: "Ghana" },
-  { title: "Nairobi Half Life", year: 2012, industry: "Kenya" },
 ];

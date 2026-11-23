@@ -13,7 +13,7 @@ const appFont = DM_Sans({
 
 export const metadata: Metadata = {
   title: { default: "Marquee — Nollywood rated by real fans", template: "%s · Marquee" },
-  description: "Discover, rate and review the best of Nollywood and African cinema.",
+  description: "Discover, rate and review the best of Nollywood.",
   applicationName: "Marquee",
 };
 

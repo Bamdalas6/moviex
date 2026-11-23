@@ -289,7 +289,8 @@ export function listChannels(): Promise<ChannelCard[]> {
       .select({ channel: channels, count: channelFilms, trailer: channelTrailer })
       .from(channels)
       .orderBy(desc(channels.featured), sql`${channels.kind} = 'trailers'`, asc(channels.priority), desc(channelFilms), asc(channels.name));
-    return rows.map((r) => toChannel(r.channel, r.count, r.trailer));
+    // Trailer channels are listed only while they still have a film on Marquee (non-Nollywood films are hidden).
+    return rows.filter((r) => r.channel.kind !== "trailers" || Number(r.count) > 0).map((r) => toChannel(r.channel, r.count, r.trailer));
   });
 }
 

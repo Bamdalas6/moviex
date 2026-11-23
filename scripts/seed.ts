@@ -190,34 +190,6 @@ const FILMS: SeedFilm[] = [
     boxOffice: 4,
   },
   {
-    key: "azali",
-    title: "Azali",
-    year: 2018,
-    genres: ["Drama"],
-    director: "Kwabena Gyansah",
-    cast: [],
-    synopsis: "A teenage girl from northern Ghana is sent south to the city, where survival comes at a heavy price.",
-    gradient: "linear-gradient(160deg, #13A574 0%, #0F6B48 55%, #062A1C 100%)",
-    target: 4.1,
-    crowd: 14,
-    language: "Twi",
-    industry: "Ghana",
-  },
-  {
-    key: "nairobi",
-    title: "Nairobi Half Life",
-    year: 2012,
-    genres: ["Crime", "Drama"],
-    director: "David Tosh Gitonga",
-    cast: ["Joseph Wairimu"],
-    synopsis: "A young man leaves his village to chase an acting career in Nairobi and falls in with the city's criminal underworld.",
-    gradient: "linear-gradient(160deg, #5B6CFF 0%, #3B4256 55%, #0E1018 100%)",
-    target: 4.2,
-    crowd: 16,
-    language: "Swahili",
-    industry: "Kenya",
-  },
-  {
     key: "iyalode",
     title: "Iyalode",
     year: 2026,
@@ -272,7 +244,6 @@ const REVIEWS: SeedReview[] = [
   { by: "kemi.frames", film: "aniku", score: 4, days: 61, helpful: 57, headline: "Gorgeous folklore", body: "Gorgeous to look at, with a story rooted in Yoruba folklore." },
   { by: "amaka.watches", film: "jenifa", score: 4, days: 5, helpful: 33, headline: "Pure Christmas chaos", body: "Exactly what you want from Jenifa: loud, silly and full of heart. My aunties laughed the whole way through." },
   { by: "tunde.reels", film: "jagun", score: 5, days: 9, helpful: 72, headline: "Epic in every sense", body: "The fight choreography and costumes are on another level for a Yoruba epic. Femi Adebayo is commanding." },
-  { by: "ife.on.film", film: "nairobi", score: 4, days: 12, helpful: 19, headline: "Raw and unforgettable", body: "A Kenyan classic that still feels fresh. The city itself is the main character." },
 ];
 
 /** Kemi's score-only ratings, which feed "Waiting for your review". */
@@ -476,8 +447,6 @@ async function main() {
     ...crowd.slice(0, 24).map((id) => ({ followerId: id, followingId: kemi, createdAt: ago(rand() * 90) })),
   ]);
   await db.insert(t.watchlist).values([
-    { userId: kemi, filmId: filmIds.get("nairobi")!, createdAt: ago(30) },
-    { userId: kemi, filmId: filmIds.get("azali")!, createdAt: ago(18) },
     { userId: kemi, filmId: filmIds.get("buka")!, createdAt: ago(3) },
   ]);
 

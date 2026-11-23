@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CategoryBar } from "@/components/film/category-bar";
 import { FilmCard, FilmRail, FilmRow } from "@/components/film/film-row";
 import { SearchPill } from "@/components/film/search-pill";
 import { SpotlightDeck } from "@/components/film/spotlight-deck";
 import { EmptyState, SectionHeading, TmdbCredit } from "@/components/layout/page";
 import { chipClass } from "@/components/ui/styles";
-import { INDUSTRIES, LANGUAGES } from "@/lib/constants";
-import { cn, initials } from "@/lib/utils";
+import { LANGUAGES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { discoverSearchSchema } from "@/lib/validation";
 import { getCurrentUser } from "@/server/auth/session";
-import { listFilms, savedFilmIds, topDirectors } from "@/server/queries/films";
-import { searchChannels, searchPeople } from "@/server/queries/people";
-import { ChannelCard, PersonResult } from "@/components/people/people-ui";
+import { listFilms, savedFilmIds } from "@/server/queries/films";
+import { listPeople, searchChannels, searchPeople } from "@/server/queries/people";
+import { ChannelCard, PersonPhoto, PersonResult } from "@/components/people/people-ui";
 import { TopPerson } from "@/components/people/top-person";
 
 export const metadata: Metadata = { title: "Discover" };
@@ -32,14 +31,18 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
   };
 
   const user = await getCurrentUser();
-  const [inCinemas, results, featured, boxOffice, streaming, everything, directors, savedIds] = await Promise.all([
-    filtering ? Promise.resolve([]) : listFilms({ nowPlaying: true, sort: "recent", limit: 10 }),
+  const [results, featured, boxOffice, streaming, everything, directors, savedIds] = await Promise.all([
     filtering ? listFilms({ ...filters, sort: "top", limit: 40 }) : Promise.resolve([]),
     listFilms({ sort: "top", limit: 10 }),
     filtering ? Promise.resolve([]) : listFilms({ sort: "box-office", limit: 6 }),
     filtering ? Promise.resolve([]) : listFilms({ streaming: true, sort: "top", limit: 10 }),
     filtering ? Promise.resolve([]) : listFilms({ sort: "recent", limit: 20 }),
-    filtering ? Promise.resolve([]) : topDirectors(),
+    filtering
+      ? Promise.resolve([])
+      : // The most prolific directors, favouring those with a photo so the row is faces, not initials.
+        listPeople({ group: "directors", sort: "rank", page: 1, perPage: 24 }).then(({ people }) =>
+          [...people].sort((a, b) => Number(Boolean(b.photoUrl)) - Number(Boolean(a.photoUrl))).slice(0, 12),
+        ),
     savedFilmIds(user?.id),
   ]);
   const [people, channels] = filters.q ? await Promise.all([searchPeople(filters.q, 6), searchChannels(filters.q, 6)]) : [[], []];
@@ -73,7 +76,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
                 <p className="text-[15px] text-white/85">
                   {filtering && results.length
                     ? `Swipe through ${results.length} ${results.length === 1 ? "match" : "matches"}`
-                    : "Swipe through the best of Nollywood and African cinema"}
+                    : "Swipe through the best of Nollywood"}
                 </p>
               </div>
               <SearchPill
@@ -88,26 +91,6 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
       />
 
       <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 pt-2 md:px-8">
-        <div className="flex flex-col gap-4 border-b border-line">
-          <CategoryBar active={filters.genre} hrefFor={(g) => href({ genre: g })} />
-        </div>
-
-        <nav aria-label="Film industry" className="scrollbar-none -mx-5 -mt-4 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
-          <Link href={href({ industry: undefined })} aria-current={!filters.industry ? "true" : undefined} className={chipClass(!filters.industry)}>
-            All industries
-          </Link>
-          {INDUSTRIES.map((label) => (
-            <Link
-              key={label}
-              href={href({ industry: filters.industry === label ? undefined : label })}
-              aria-current={filters.industry === label ? "true" : undefined}
-              className={chipClass(filters.industry === label)}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-
         {people.length > 0 && (
           <section aria-labelledby="people-results" className="flex flex-col gap-5">
             <SectionHeading
@@ -168,17 +151,6 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
           </section>
         ) : (
           <>
-            {inCinemas.length > 0 && (
-              <section aria-labelledby="in-cinemas" className="flex flex-col gap-5">
-                <SectionHeading title={<span id="in-cinemas">In cinemas now</span>} href="/cinemas" linkLabel="Find a cinema" />
-                <FilmRail>
-                  {inCinemas.map((film) => (
-                    <FilmCard key={film.id} film={film} ctx={ctx} badge="In cinemas" />
-                  ))}
-                </FilmRail>
-              </section>
-            )}
-
             <section aria-labelledby="box-office" className="flex flex-col gap-3">
               <SectionHeading title={<span id="box-office">Box office chart</span>} subtitle="Highest-grossing Nollywood releases" />
               <ol className="grid gap-x-10 md:grid-cols-2">
@@ -203,20 +175,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
               <SectionHeading title={<span id="directors">Directors to know</span>} />
               <div className="scrollbar-none -mx-5 flex gap-6 overflow-x-auto px-5 md:mx-0 md:px-0">
                 {directors.map((d) => (
-                  <Link
-                    key={d.name}
-                    href={`/discover?q=${encodeURIComponent(d.name)}`}
-                    className="group flex w-24 shrink-0 flex-col items-center gap-2 text-center"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="flex size-20 items-center justify-center rounded-full text-2xl font-bold text-white shadow-card transition group-hover:shadow-lift"
-                      style={{ background: d.color ?? "var(--cta)" }}
-                    >
-                      {initials(d.name)}
+                  <Link key={d.id} href={`/people/${d.slug}`} className="group flex w-24 shrink-0 flex-col items-center gap-2 text-center">
+                    <span className="transition duration-300 group-hover:-translate-y-1 group-hover:scale-105">
+                      <PersonPhoto name={d.name} photoUrl={d.photoUrl} size={80} className="shadow-card ring-2 ring-page" />
                     </span>
-                    <span className="text-[14px] leading-tight font-semibold">{d.name}</span>
-                    {d.knownFor && <span className="-mt-1 text-[12.5px] text-sub">{d.knownFor}</span>}
+                    <span className="line-clamp-2 text-[14px] leading-tight font-semibold [overflow-wrap:anywhere] group-hover:underline">{d.name}</span>
+                    <span className="-mt-1 text-[12.5px] text-sub">{d.filmCount} films</span>
                   </Link>
                 ))}
               </div>

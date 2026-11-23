@@ -1,6 +1,6 @@
 # Marquee
 
-Discover, rate and review Nollywood and African cinema. A full-stack implementation of the
+Discover, rate and review Nollywood films. A full-stack implementation of the
 [Marquee design](https://claude.ai/artifact/BdnW5QZBJ3wfMHRwMBMxAb) (home, onboarding, log in, sign up,
 film detail, rate & review, upload, profile, discover, reviews feed — light and dark).
 

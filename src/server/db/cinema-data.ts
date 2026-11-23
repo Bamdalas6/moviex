@@ -33,7 +33,6 @@ export const CINEMA_BRANCHES: {
   { chain: "Silverbird Cinemas", branch: "Silverbird Entertainment Centre", city: "Abuja" },
   { chain: "Silverbird Cinemas", branch: "Port Harcourt", city: "Port Harcourt" },
   { chain: "Silverbird Cinemas", branch: "Uyo", city: "Uyo" },
-  { chain: "Silverbird Cinemas", branch: "Accra Mall", city: "Accra", country: "Ghana" },
 
   { chain: "EbonyLife Cinemas", branch: "EbonyLife Place, Victoria Island", city: "Lagos" },
 ];
