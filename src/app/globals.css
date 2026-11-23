@@ -241,10 +241,14 @@
 /* Scroll reveal ([data-reveal], "scale", "left") is driven by MotionProvider via the Web Animations API. */
 
 /* Click ripple (spans injected by MotionProvider into .ripple elements). */
-.ripple {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+/* In the components layer so utilities win: a button that is also `absolute` (e.g. the Discover
+   arrows) must stay absolute. Unlayered, this rule overrode every positioning utility. */
+@layer components {
+  .ripple {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
 }
 .ripple-ink {
   position: absolute;
