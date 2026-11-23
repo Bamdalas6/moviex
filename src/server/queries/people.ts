@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, like, or, sql, type SQL } from "drizzle-orm";
 import type { FilmSummary } from "@/lib/types";
 import { socialLinks, youtubeUrlFor, type SocialLink } from "@/lib/socials";
 import { db } from "@/server/db/client";
@@ -17,6 +17,8 @@ export type PersonCard = {
   headline: string | null;
   photoUrl: string | null;
   filmCount: number;
+  /** Position in the Nollywood collection, or null. */
+  rank: number | null;
   socialCount: number;
   /** Public profiles to follow (no IMDb/Wikipedia reference links). */
   socials: SocialLink[];
@@ -29,9 +31,16 @@ export type PersonDetail = PersonCard & {
   placeOfBirth: string | null;
   socials: SocialLink[];
   youtubeChannel: ChannelCard | null;
-  /** One entry per film, e.g. "Director · as Jenifa" when they did both. */
+  /** One entry per film, e.g. "Director · as Jenifa" when they did both. Newest first. */
   credits: { film: FilmSummary; directed: boolean; acted: boolean; character: string | null }[];
+  /** Their best-known films (most TMDB votes). */
+  knownFor: FilmSummary[];
+  career: { firstYear: number | null; lastYear: number | null; genres: { genre: string; count: number }[]; languages: string[] };
+  coStars: Collaborator[];
+  directors: Collaborator[];
 };
+
+export type Collaborator = { slug: string; name: string; photoUrl: string | null; shared: number };
 
 export type ChannelCard = {
   id: string;
@@ -48,8 +57,14 @@ export type ChannelCard = {
 };
 
 const ROLE_LABEL: Record<string, string> = { Acting: "Actor", Directing: "Director", Writing: "Writer", Production: "Producer" };
+/** "Actress"/"Actor" only when TMDB or Wikidata lists their gender; otherwise the neutral "Performer" (never guessed from a name). */
+const roleLabel = (p: Pick<Person, "knownFor" | "gender">) => {
+  if (p.knownFor !== "Acting") return ROLE_LABEL[p.knownFor ?? ""] ?? "Film-maker";
+  return p.gender === 1 ? "Actress" : p.gender === 2 ? "Actor" : "Performer";
+};
 
-const photoFor = (p: Pick<Person, "tmdbProfilePath" | "photoUrl">) => tmdbImage(p.tmdbProfilePath, "h632") ?? p.photoUrl;
+// Small (185px) for cards and strips; the profile hero asks for the large one.
+const photoFor = (p: Pick<Person, "tmdbProfilePath" | "photoUrl">, size: "w185" | "h632" = "w185") => tmdbImage(p.tmdbProfilePath, size) ?? p.photoUrl;
 
 const published = sql`${films.status} = 'published'`;
 // Written with explicit table names: Drizzle leaves columns unqualified in single-table
@@ -62,10 +77,11 @@ function toCard(p: Person, count: number): PersonCard {
     id: p.id,
     slug: p.slug,
     name: p.name,
-    role: ROLE_LABEL[p.knownFor ?? ""] ?? "Film-maker",
+    role: roleLabel(p),
     headline: p.headline,
     photoUrl: photoFor(p),
     filmCount: Number(count),
+    rank: p.rank,
     socialCount: socials.length,
     socials,
   };
@@ -87,6 +103,9 @@ export function searchPeople(q: string, limit = 8): Promise<PersonCard[]> {
         // exact name, then name starting with the query, then the most popular
         desc(sql`lower(${people.name}) = ${lower}`),
         desc(sql`lower(${people.name}) like ${lower.replace(/[%_\\]/g, "") + "%"}`),
+        // members of the Nollywood collection before lesser-known namesakes
+        asc(sql`${people.rank} is null`),
+        asc(people.rank),
         desc(people.popularity),
       )
       .limit(limit);
@@ -94,15 +113,46 @@ export function searchPeople(q: string, limit = 8): Promise<PersonCard[]> {
   });
 }
 
-/** Most-featured people on Marquee: the faces of the catalogue. */
+/** The top of the Nollywood collection: the faces of the catalogue. */
 export function popularPeople(limit = 12): Promise<PersonCard[]> {
-  return cached(`people:popular:${limit}`, async () => {
-    const rows = await db
-      .select({ person: people, count: filmCount })
-      .from(people)
-      .orderBy(desc(filmCount), desc(people.popularity))
-      .limit(limit);
-    return rows.map((r) => toCard(r.person, r.count));
+  return listPeople({ group: "all", sort: "rank", page: 1, perPage: limit }).then((r) => r.people);
+}
+
+export type PeopleGroup = "all" | "actresses" | "actors" | "directors";
+export type PeopleSort = "rank" | "name" | "popular";
+
+const directorCredits = sql`(select count(*) from film_people fp join films f on f.id = fp.film_id where fp.person_id = "people"."id" and fp.role = 'director' and f.status = 'published')`;
+
+/** One page of the people directory: the Nollywood collection, or directors with 2+ films. */
+export function listPeople(opts: { group: PeopleGroup; sort: PeopleSort; page: number; perPage: number; letter?: string }) {
+  return cached(`people:list:${JSON.stringify(opts)}`, async () => {
+    const where: SQL[] = [];
+    if (opts.group === "directors") where.push(sql`${directorCredits} >= 2`);
+    else where.push(isNotNull(people.rank));
+    if (opts.group === "actresses") where.push(eq(people.gender, 1));
+    if (opts.group === "actors") where.push(eq(people.gender, 2));
+    if (opts.letter) where.push(like(people.name, `${opts.letter}%`));
+
+    const order =
+      opts.sort === "name"
+        ? [asc(people.name)]
+        : opts.sort === "popular"
+          ? [desc(people.popularity)]
+          : opts.group === "directors"
+            ? [desc(directorCredits), desc(people.popularity)]
+            : [asc(people.rank)];
+
+    const [rows, [total]] = await Promise.all([
+      db
+        .select({ person: people, count: filmCount })
+        .from(people)
+        .where(and(...where))
+        .orderBy(...order)
+        .limit(opts.perPage)
+        .offset((opts.page - 1) * opts.perPage),
+      db.select({ n: sql<number>`count(*)` }).from(people).where(and(...where)),
+    ]);
+    return { people: rows.map((r) => toCard(r.person, r.count)), total: Number(total?.n ?? 0) };
   });
 }
 
@@ -111,16 +161,18 @@ export async function getPerson(slug: string): Promise<PersonDetail | null> {
   if (!person) return null;
 
   const creditRows = await db
-    .select({ filmId: filmPeople.filmId, role: filmPeople.role, character: filmPeople.character })
+    .select({ filmId: filmPeople.filmId, role: filmPeople.role, character: filmPeople.character, votes: films.tmdbVotes })
     .from(filmPeople)
     .innerJoin(films, eq(films.id, filmPeople.filmId))
     .where(and(eq(filmPeople.personId, person.id), published))
     .orderBy(desc(films.year), asc(filmPeople.position));
 
   const ytUrl = normalizeChannelUrl(youtubeUrlFor(person.youtube));
-  const [summaries, channelRow] = await Promise.all([
+  const [summaries, channelRow, coStars, directors] = await Promise.all([
     filmsByIds([...new Set(creditRows.map((c) => c.filmId))]),
     ytUrl ? listChannels().then((all) => all.find((c) => c.url === ytUrl) ?? null) : Promise.resolve(null),
+    collaborators(person.id, "cast"),
+    collaborators(person.id, "director"),
   ]);
   const byId = new Map(summaries.map((f) => [f.id, f]));
   const merged = new Map<string, PersonDetail["credits"][number]>();
@@ -137,8 +189,24 @@ export async function getPerson(slug: string): Promise<PersonDetail | null> {
   }
   const credits = [...merged.values()];
 
+  const votes = new Map(creditRows.map((c) => [c.filmId, c.votes ?? 0]));
+  const knownFor = [...credits]
+    .sort((a, b) => (votes.get(b.film.id) ?? 0) - (votes.get(a.film.id) ?? 0) || b.film.year - a.film.year)
+    .slice(0, 4)
+    .map((c) => c.film);
+  const years = credits.map((c) => c.film.year).filter((y) => y > 1900);
+  const genreCounts = new Map<string, number>();
+  for (const c of credits) for (const g of c.film.genres) genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
+  const career = {
+    firstYear: years.length ? Math.min(...years) : null,
+    lastYear: years.length ? Math.max(...years) : null,
+    genres: [...genreCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([genre, count]) => ({ genre, count })),
+    languages: [...new Set(credits.map((c) => c.film.language).filter((l): l is string => Boolean(l)))].slice(0, 4),
+  };
+
   return {
     ...toCard(person, credits.length),
+    photoUrl: photoFor(person, "h632"),
     biography: person.biography,
     bioSource: person.bioSource,
     birthday: person.birthday,
@@ -146,7 +214,33 @@ export async function getPerson(slug: string): Promise<PersonDetail | null> {
     socials: socialLinks(person),
     youtubeChannel: channelRow,
     credits,
+    knownFor,
+    career,
+    coStars,
+    directors,
   };
+}
+
+/** People who share the most films with someone: co-stars (cast) or the directors they work with. */
+async function collaborators(personId: string, role: "cast" | "director", limit = 10): Promise<Collaborator[]> {
+  const rows = await db.all<{ slug: string; name: string; tmdb_profile_path: string | null; photo_url: string | null; shared: number }>(sql`
+    select p.slug, p.name, p.tmdb_profile_path, p.photo_url, count(distinct other.film_id) as shared
+    from film_people mine
+    join films f on f.id = mine.film_id and f.status = 'published'
+    join film_people other on other.film_id = mine.film_id and other.person_id <> mine.person_id and other.role = ${role}
+    join people p on p.id = other.person_id
+    where mine.person_id = ${personId}
+    group by p.id
+    having count(distinct other.film_id) >= ${role === "cast" ? 2 : 1}
+    order by shared desc, p.popularity desc
+    limit ${limit}
+  `);
+  return rows.map((r) => ({
+    slug: r.slug,
+    name: r.name,
+    photoUrl: tmdbImage(r.tmdb_profile_path, "w185") ?? r.photo_url,
+    shared: Number(r.shared),
+  }));
 }
 
 /** Cast and directors of one film, linked to their profiles. */

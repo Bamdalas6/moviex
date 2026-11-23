@@ -36,14 +36,28 @@ export type TmdbMovieDetail = {
   spoken_languages: { iso_639_1: string; english_name: string }[];
   genres: { id: number; name: string }[];
   credits: {
-    cast: { id: number; name: string; order: number; character?: string | null }[];
-    crew: { id: number; name: string; job: string }[];
+    cast: TmdbCastCredit[];
+    crew: TmdbCrewCredit[];
   };
   videos?: { results: TmdbVideo[] };
   "watch/providers"?: {
     results: Record<string, { link?: string; flatrate?: Provider[]; rent?: Provider[]; buy?: Provider[] } | undefined>;
   };
 };
+
+type CreditPerson = {
+  id: number;
+  name: string;
+  profile_path?: string | null;
+  known_for_department?: string | null;
+  popularity?: number;
+  gender?: number;
+};
+export type TmdbCastCredit = CreditPerson & { order: number; character?: string | null };
+export type TmdbCrewCredit = CreditPerson & { job: string };
+
+/** A film in someone's filmography (enough to decide whether to import it). */
+export type TmdbFilmographyEntry = { id: number; title: string; poster_path: string | null; release_date?: string; job?: string };
 
 export type TmdbPerson = {
   id: number;
@@ -54,6 +68,8 @@ export type TmdbPerson = {
   profile_path: string | null;
   known_for_department: string | null;
   popularity: number;
+  gender?: number;
+  movie_credits?: { cast: TmdbFilmographyEntry[]; crew: TmdbFilmographyEntry[] };
   external_ids?: {
     imdb_id: string | null;
     wikidata_id: string | null;
@@ -126,7 +142,7 @@ export class TmdbClient {
   }
 
   person(id: number) {
-    return this.get<TmdbPerson>(`/person/${id}`, { append_to_response: "external_ids" });
+    return this.get<TmdbPerson>(`/person/${id}`, { append_to_response: "external_ids,movie_credits" });
   }
 }
 

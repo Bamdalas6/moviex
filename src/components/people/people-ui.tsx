@@ -87,14 +87,18 @@ export function PersonCard({ person, className }: { person: Person; className?: 
     <Link
       href={`/people/${person.slug}`}
       data-reveal
-      className={cn("group flex flex-col items-center gap-2.5 rounded-2xl p-3 text-center transition hover:bg-field/70", className)}
+      title={person.name}
+      className={cn("group flex min-w-0 flex-col items-center gap-2.5 rounded-2xl p-2 text-center transition hover:bg-field/70 sm:p-3", className)}
     >
       <span className="transition duration-300 group-hover:-translate-y-1 group-hover:scale-105">
-        <PersonPhoto name={person.name} photoUrl={person.photoUrl} size={96} className="shadow-card ring-2 ring-page" />
+        <PersonPhoto name={person.name} photoUrl={person.photoUrl} size={88} className="shadow-card ring-2 ring-page" />
       </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[15px] font-semibold group-hover:underline">{person.name}</span>
-        <span className="block text-[13px] text-sub">
+      {/* w-full keeps long names inside the card: they wrap onto a second line instead of spilling into the neighbour. */}
+      <span className="w-full min-w-0">
+        <span className="line-clamp-2 text-[13.5px] leading-snug font-semibold [overflow-wrap:anywhere] group-hover:underline sm:text-[14px]">
+          {person.name}
+        </span>
+        <span className="mt-0.5 block truncate text-[12px] text-sub sm:text-[12.5px]">
           {person.role} · {plural(person.filmCount, "film")}
         </span>
       </span>

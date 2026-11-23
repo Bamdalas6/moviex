@@ -1,0 +1,1 @@
+CREATE INDEX `films_trailer_channel_idx` ON `films` (`trailer_channel_url`);

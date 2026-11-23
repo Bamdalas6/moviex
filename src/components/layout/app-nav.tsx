@@ -184,7 +184,7 @@ export function AppNav({ user }: { user: NavUser }) {
             )}
           </nav>
           <div className="flex items-center justify-end gap-2">
-            <Link href="/upload" className="rounded-full px-4 py-2.5 text-[15px] font-semibold hover:bg-field">
+            <Link href="/upload" className="hidden rounded-full px-4 py-2.5 text-[15px] font-semibold whitespace-nowrap hover:bg-field lg:inline-block">
               Share a poster
             </Link>
             <AccountMenu user={user} />

@@ -22,3 +22,14 @@ export const client = createClient({
 
 export const db = drizzle(client, { schema });
 export { schema };
+
+/**
+ * Local SQLite only: WAL lets the dev server keep reading while a script
+ * writes, and the busy timeout makes a write wait for a lock instead of
+ * failing with SQLITE_BUSY. (Turso handles this itself.)
+ */
+export async function ready() {
+  if (!DATABASE_URL.startsWith("file:")) return;
+  await client.execute("PRAGMA journal_mode = WAL");
+  await client.execute("PRAGMA busy_timeout = 15000");
+}

@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   description: "YouTube channels that publish full Nollywood and Yoruba movies, plus the studios behind the trailers on Marquee.",
 };
 
-type SearchParams = Promise<{ q?: string | string[]; lang?: string | string[] }>;
+type SearchParams = Promise<{ q?: string | string[]; lang?: string | string[]; all?: string | string[] }>;
+
+/** Trailer channels shown before "Show all" (there are a few hundred). */
+const TRAILER_PREVIEW = 24;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim().slice(0, 80) ?? "";
 
 const FILTERS = [
@@ -25,13 +28,16 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Sea
   const sp = await searchParams;
   const q = one(sp.q);
   const lang = one(sp.lang);
+  const showAll = one(sp.all) === "1";
   const all = q ? await searchChannels(q, 60) : await listChannels();
 
   const filtered = all.filter((c) =>
     !lang ? true : lang === "studios" ? c.kind === "studio" || c.kind === "trailers" : c.language === lang && c.kind !== "trailers",
   );
   const picks = filtered.filter((c) => c.kind !== "trailers");
-  const trailerChannels = filtered.filter((c) => c.kind === "trailers");
+  const allTrailerChannels = filtered.filter((c) => c.kind === "trailers").sort((a, b) => b.filmCount - a.filmCount || a.name.localeCompare(b.name));
+  const trailerChannels = showAll || q ? allTrailerChannels : allTrailerChannels.slice(0, TRAILER_PREVIEW);
+  const allHref = `/channels?${new URLSearchParams({ ...(q ? { q } : {}), ...(lang ? { lang } : {}), all: "1" }).toString()}`;
 
   return (
     <PageShell wide>
@@ -78,7 +84,12 @@ export default async function ChannelsPage({ searchParams }: { searchParams: Sea
 
       {trailerChannels.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionHeading title="Studios and trailer channels" subtitle="The channels that posted trailers for films on Marquee" />
+          <SectionHeading
+            title="Studios and trailer channels"
+            subtitle={`${allTrailerChannels.length} channels posted trailers for films on Marquee${trailerChannels.length < allTrailerChannels.length ? " · most films first" : ""}`}
+            href={trailerChannels.length < allTrailerChannels.length ? allHref : undefined}
+            linkLabel={`Show all ${allTrailerChannels.length}`}
+          />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {trailerChannels.map((c) => (
               <ChannelCard key={c.id} channel={c} />

@@ -9,6 +9,8 @@ const HEADERS = { "User-Agent": "Marquee-film-import/1.0", Accept: "application/
 
 export type WikiProfile = {
   headline: string | null;
+  /** From Wikidata "sex or gender" (P21), in TMDB's numbering: 1 female, 2 male, 0 unknown. */
+  gender: number;
   wikipediaTitle: string | null;
   instagram: string | null;
   x: string | null;
@@ -37,6 +39,14 @@ function claimValue(claims: Claim[] | undefined): string | null {
   return typeof value === "string" ? value.trim() : null;
 }
 
+/** Wikidata items for female (incl. trans woman) and male (incl. trans man). */
+function genderOf(claims: Claim[] | undefined): number {
+  const value = (claims ?? []).find((c) => c.rank !== "deprecated")?.mainsnak?.datavalue?.value as { id?: string } | undefined;
+  if (value?.id === "Q6581072" || value?.id === "Q1052281") return 1;
+  if (value?.id === "Q6581097" || value?.id === "Q2449503") return 2;
+  return 0;
+}
+
 /** Usernames/ids only: anything with spaces or slashes is not a usable handle. */
 const handle = (v: string | null) => (v && /^[\w.@-]{1,100}$/.test(v) ? v.replace(/^@/, "") : null);
 const website = (v: string | null) => (v && /^https?:\/\/[^\s]+$/.test(v) ? v : null);
@@ -63,6 +73,7 @@ export async function wikidataProfiles(ids: string[]): Promise<Map<string, WikiP
       for (const [id, e] of Object.entries(data.entities ?? {})) {
         out.set(id, {
           headline: e.descriptions?.en?.value ?? null,
+          gender: genderOf(e.claims?.P21),
           wikipediaTitle: e.sitelinks?.enwiki?.title ?? null,
           instagram: handle(claimValue(e.claims?.[PROPS.instagram])),
           x: handle(claimValue(e.claims?.[PROPS.x])),

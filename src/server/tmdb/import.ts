@@ -1,16 +1,29 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { eq, isNotNull, sql } from "drizzle-orm";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { GENRES, MAX_GENRES_PER_FILM, POSTER_GRADIENTS } from "../../lib/constants";
 import { pickByKey, slugify } from "../../lib/utils";
 import * as schema from "../db/schema";
 import { fetchYouTubeDetails } from "../youtube-oembed";
-import { mapLimit, pickTrailer, TmdbClient, type TmdbListMovie, type TmdbMovieDetail } from "./client";
-import { importPeople, type Credit } from "./people";
+import { runBatched, type Statement } from "./batch";
+import {
+  mapLimit,
+  pickTrailer,
+  TmdbClient,
+  type TmdbCastCredit,
+  type TmdbCrewCredit,
+  type TmdbListMovie,
+  type TmdbMovieDetail,
+  type TmdbPerson,
+} from "./client";
+import { importPeople, type Credit, type LightPerson } from "./people";
 
 /**
- * Imports Nollywood and wider African cinema from TMDB:
- * films, official posters, cast/crew, genres, streaming availability in
- * Nigeria and the "now playing in Nigerian cinemas" list.
+ * Imports Nollywood and wider African cinema from TMDB: every Nigerian film
+ * TMDB lists (with a poster), a selection from Ghana, Kenya, South Africa and
+ * francophone Africa, posters, cast/crew, genres, trailers, streaming in
+ * Nigeria and the "now playing in Nigerian cinemas" list. Then it builds the
+ * Nollywood collection: the most-credited actors and actresses with full
+ * profiles and complete filmographies.
  *
  * Idempotent: films are matched by TMDB id, then by slug, so re-running
  * refreshes data (and the now-playing flags) instead of duplicating rows.
@@ -38,6 +51,9 @@ export type ImportedFilm = {
 type Hint = { curated?: CuratedFilm; nowPlaying?: boolean };
 
 const REGION = "NG";
+
+/** Billed cast stored per film (the cast strip on film pages and everyone's filmography). */
+const CAST_PER_FILM = 12;
 
 const FRANCOPHONE = new Set(["SN", "CI", "ML", "BF", "CM", "BJ", "TG", "CD", "NE", "GN", "CG", "GA"]);
 
@@ -97,10 +113,19 @@ export function mapGenres(names: string[]) {
 
 export async function importFromTmdb(
   db: Db,
-  opts: { apiKey: string; curated?: CuratedFilm[]; log?: (message: string) => void },
+  opts: {
+    apiKey: string;
+    curated?: CuratedFilm[];
+    log?: (message: string) => void;
+    /** How many actors and actresses make the Nollywood collection. */
+    collectionSize?: number;
+    /** Cap on Nigerian discover pages (20 films each); the default takes them all. */
+    nigerianPages?: number;
+  },
 ): Promise<ImportedFilm[]> {
   const log = opts.log ?? (() => undefined);
   const tmdb = new TmdbClient(opts.apiKey);
+  const collectionSize = opts.collectionSize ?? 500;
   const candidates = new Map<number, Hint>();
 
   const take = (list: TmdbListMovie[], max: number, hint: Hint = {}) => {
@@ -114,7 +139,6 @@ export async function importFromTmdb(
     }
   };
 
-  // 1. Most-voted films per industry (vote count is TMDB's best proxy for "known").
   const pages = async (params: Record<string, string | number>, count: number) => {
     const out: TmdbListMovie[] = [];
     for (let page = 1; page <= count; page++) {
@@ -125,14 +149,15 @@ export async function importFromTmdb(
     return out;
   };
 
-  take(await pages({ with_origin_country: "NG", "vote_count.gte": 2 }, 4), 60);
-  take(await pages({ with_origin_country: "GH" }, 1), 12);
-  take(await pages({ with_origin_country: "KE", with_original_language: "en|sw" }, 1), 10);
-  take(await pages({ with_origin_country: "ZA", with_original_language: "zu|xh|af|st|tn" }, 1), 10);
+  // 1. Every Nigerian film TMDB knows, most popular first.
+  take(await pages({ with_origin_country: "NG", sort_by: "popularity.desc" }, opts.nigerianPages ?? 500), 100_000);
+  take(await pages({ with_origin_country: "GH" }, 2), 30);
+  take(await pages({ with_origin_country: "KE", with_original_language: "en|sw" }, 1), 12);
+  take(await pages({ with_origin_country: "ZA", with_original_language: "zu|xh|af|st|tn" }, 1), 12);
   take(await pages({ with_origin_country: "SN" }, 1), 5);
   take(await pages({ with_origin_country: "CI" }, 1), 4);
 
-  // 2. Hand-picked titles (e.g. the seed's reviewed films) by title + year.
+  // 2. Hand-picked titles by title + year.
   for (const film of opts.curated ?? []) {
     const { results } = await tmdb.search(film.title, film.year);
     const match =
@@ -145,44 +170,99 @@ export async function importFromTmdb(
   take((await tmdb.nowPlaying(REGION)).results, 40, { nowPlaying: true });
 
   log(`Fetching details for ${candidates.size} films from TMDB …`);
-  const ids = [...candidates.keys()];
-  const details = await mapLimit(ids, 6, (id) => tmdb.movie(id).catch(() => null));
+  const details = new Map<number, TmdbMovieDetail>();
+  const fetchDetails = async (ids: number[]) => {
+    const got = await mapLimit(ids, 8, (id) => tmdb.movie(id).catch(() => null));
+    for (const d of got) {
+      if (d && !d.adult && d.poster_path && d.release_date && (industryFor(d) || candidates.get(d.id)?.curated)) details.set(d.id, d);
+    }
+  };
+  await fetchDetails([...candidates.keys()]);
+
+  // 4. The Nollywood collection: actors and actresses with the most Nigerian films, plus prolific directors.
+  const isNollywood = (d: TmdbMovieDetail) => {
+    const industry = candidates.get(d.id)?.curated?.industry ?? industryFor(d);
+    return industry === "Nollywood" || industry === "Kannywood";
+  };
+  const tally = (role: "cast" | "director") => {
+    const counts = new Map<number, { n: number; popularity: number }>();
+    for (const d of details.values()) {
+      if (!isNollywood(d)) continue;
+      const credited = role === "cast" ? d.credits.cast.slice(0, CAST_PER_FILM) : d.credits.crew.filter((c) => c.job === "Director");
+      for (const p of new Map(credited.map((c) => [c.id, c])).values()) {
+        const t = counts.get(p.id) ?? { n: 0, popularity: p.popularity ?? 0 };
+        t.n++;
+        counts.set(p.id, t);
+      }
+    }
+    return [...counts.entries()].sort((a, b) => b[1].n - a[1].n || b[1].popularity - a[1].popularity);
+  };
+  const actorIds = tally("cast")
+    .slice(0, Math.round(collectionSize * 1.15)) // headroom: a few credited cast turn out to be crew
+    .map(([id]) => id);
+  const directorIds = tally("director")
+    .filter(([, t]) => t.n >= 2)
+    .slice(0, 120)
+    .map(([id]) => id);
+
+  const profileIds = [...new Set([...actorIds, ...directorIds])];
+  log(`Fetching ${profileIds.length} profiles with full filmographies …`);
+  const profiles = new Map(
+    (await mapLimit(profileIds, 8, (id) => tmdb.person(id).catch(() => null)))
+      .filter((p): p is TmdbPerson => Boolean(p))
+      .map((p) => [p.id, p]),
+  );
+
+  // 5. Complete their filmographies: any African film of theirs we don't have yet.
+  const missing = new Set<number>();
+  for (const p of profiles.values()) {
+    const entries = [...(p.movie_credits?.cast ?? []), ...(p.movie_credits?.crew ?? []).filter((c) => c.job === "Director")];
+    for (const e of entries) if (e.poster_path && e.release_date && !details.has(e.id) && !candidates.has(e.id)) missing.add(e.id);
+  }
+  const before = details.size;
+  await fetchDetails([...missing]);
+  log(`Filmographies: checked ${missing.size} more films, added ${details.size - before} African ones.`);
 
   // Which YouTube channel posted each trailer (names the studio/producer channel).
-  const trailerOf = (d: TmdbMovieDetail | null) => (d ? pickTrailer(d.videos?.results) : null);
+  const trailerOf = (d: TmdbMovieDetail) => pickTrailer(d.videos?.results);
   const channelByKey = new Map(
-    await mapLimit(details, 6, async (d) => {
+    await mapLimit([...details.values()], 8, async (d) => {
       const key = trailerOf(d)?.key;
       return [key ?? "", key ? await fetchYouTubeDetails(key, 8000) : null] as const;
     }),
   );
 
-  // Reset now-playing; this import's list is the source of truth.
-  await db.update(schema.films).set({ nowPlaying: false }).where(isNotNull(schema.films.tmdbId));
+  // 6. Write films: one read of what exists, then batched writes (one round trip per ~100 statements).
+  const existingFilms = await db.select({ id: schema.films.id, slug: schema.films.slug, tmdbId: schema.films.tmdbId }).from(schema.films);
+  const byTmdb = new Map(existingFilms.filter((f) => f.tmdbId !== null).map((f) => [f.tmdbId!, f]));
+  const bySlug = new Map(existingFilms.map((f) => [f.slug, f]));
 
+  const statements: Statement[] = [db.update(schema.films).set({ nowPlaying: false }).where(isNotNull(schema.films.tmdbId))];
   const imported: ImportedFilm[] = [];
   const credits: Credit[] = [];
-  let skipped = 0;
+  const lightPeople = new Map<number, LightPerson>();
+  const remember = (c: TmdbCastCredit | TmdbCrewCredit) => {
+    if (lightPeople.has(c.id)) return;
+    lightPeople.set(c.id, {
+      tmdbId: c.id,
+      name: c.name,
+      profilePath: c.profile_path ?? null,
+      knownFor: c.known_for_department ?? null,
+      popularity: c.popularity ?? 0,
+      gender: c.gender ?? 0,
+    });
+  };
 
-  for (const [i, detail] of details.entries()) {
-    const hint = candidates.get(ids[i]!)!;
-    if (!detail || detail.adult || !detail.poster_path || !detail.release_date) {
-      skipped++;
-      continue;
-    }
-    const industry = hint.curated?.industry ?? industryFor(detail);
-    if (!industry) {
-      skipped++; // e.g. a Hollywood title on the Nigerian now-playing list
-      continue;
-    }
-
+  for (const detail of details.values()) {
+    const hint = candidates.get(detail.id) ?? {};
+    const industry = hint.curated?.industry ?? industryFor(detail) ?? "Nollywood";
     const year = Number(detail.release_date.slice(0, 4));
     const title = hint.curated?.title ?? detail.title;
     const ngProviders = detail["watch/providers"]?.results[REGION];
     const byPriority = <T extends { display_priority: number }>(list?: T[]) =>
       [...(list ?? [])].sort((a, b) => a.display_priority - b.display_priority);
     const streams = byPriority(ngProviders?.flatrate);
-    const directors = detail.credits.crew.filter((c) => c.job === "Director").map((c) => c.name);
+    const directors = detail.credits.crew.filter((c) => c.job === "Director");
     const trailer = trailerOf(detail);
     const channel = trailer ? channelByKey.get(trailer.key) : null;
 
@@ -191,10 +271,11 @@ export async function importFromTmdb(
       year,
       runtimeMinutes: detail.runtime || null,
       synopsis: (detail.overview ?? "").slice(0, 600),
-      director: directors.slice(0, 2).join(" & ") || null,
+      director: directors.slice(0, 2).map((d) => d.name).join(" & ") || null,
       cast: [...detail.credits.cast].sort((a, b) => a.order - b.order).slice(0, 6).map((c) => c.name),
       industry,
-      language: LANGUAGE_NAMES[detail.original_language] ??
+      language:
+        LANGUAGE_NAMES[detail.original_language] ??
         detail.spoken_languages.find((l) => l.iso_639_1 === detail.original_language)?.english_name ??
         "English",
       platform: streams[0]?.provider_name ?? null,
@@ -217,43 +298,41 @@ export async function importFromTmdb(
       ...(hint.curated?.boxOfficeRank !== undefined ? { boxOfficeRank: hint.curated.boxOfficeRank } : {}),
     };
 
-    // Match an existing row: same TMDB id, else the same slug (title + year).
+    // Match an existing row: same TMDB id, else the same slug (title + year) unless that's another TMDB film.
     const baseSlug = slugify(`${title}-${year}`) || `film-${detail.id}`;
-    const [existing] = await db
-      .select({ id: schema.films.id, slug: schema.films.slug })
-      .from(schema.films)
-      .where(sql`${schema.films.tmdbId} = ${detail.id} or ${schema.films.slug} = ${baseSlug}`)
-      .limit(1);
+    const sameSlug = bySlug.get(baseSlug);
+    const existing = byTmdb.get(detail.id) ?? (sameSlug && (sameSlug.tmdbId === null || sameSlug.tmdbId === detail.id) ? sameSlug : undefined);
 
     let filmId: string;
     let slug: string;
     if (existing) {
-      await db.update(schema.films).set(values).where(eq(schema.films.id, existing.id));
       filmId = existing.id;
       slug = existing.slug;
+      statements.push(db.update(schema.films).set(values).where(eq(schema.films.id, filmId)));
     } else {
       slug = baseSlug;
-      for (let n = 2; (await db.select({ id: schema.films.id }).from(schema.films).where(eq(schema.films.slug, slug))).length; n++) {
-        slug = `${baseSlug}-${n}`;
-      }
-      const [row] = await db
-        .insert(schema.films)
-        .values({
+      for (let n = 2; bySlug.has(slug); n++) slug = `${baseSlug}-${n}`;
+      filmId = crypto.randomUUID();
+      statements.push(
+        db.insert(schema.films).values({
           ...values,
+          id: filmId,
           slug,
           posterGradient: pickByKey(POSTER_GRADIENTS, slug),
           status: "published",
           publishedAt: new Date(),
-        })
-        .returning({ id: schema.films.id });
-      filmId = row!.id;
+        }),
+      );
     }
+    const row = { id: filmId, slug, tmdbId: detail.id };
+    bySlug.set(slug, row);
+    byTmdb.set(detail.id, row);
 
     const genres = mapGenres(detail.genres.map((g) => g.name));
-    await db.delete(schema.filmGenres).where(eq(schema.filmGenres.filmId, filmId));
-    if (genres.length) await db.insert(schema.filmGenres).values(genres.map((genre) => ({ filmId, genre })));
+    statements.push(db.delete(schema.filmGenres).where(eq(schema.filmGenres.filmId, filmId)));
+    if (genres.length) statements.push(db.insert(schema.filmGenres).values(genres.map((genre) => ({ filmId, genre }))));
 
-    await db.delete(schema.filmProviders).where(eq(schema.filmProviders.filmId, filmId));
+    statements.push(db.delete(schema.filmProviders).where(eq(schema.filmProviders.filmId, filmId)));
     const providerRows = (
       [
         ["stream", streams],
@@ -261,34 +340,35 @@ export async function importFromTmdb(
         ["buy", byPriority(ngProviders?.buy)],
       ] as const
     ).flatMap(([kind, list]) =>
-      list.map((p) => ({
-        filmId,
-        kind,
-        providerId: p.provider_id,
-        name: p.provider_name,
-        logoPath: p.logo_path,
-        priority: p.display_priority,
-      })),
+      list.map((p) => ({ filmId, kind, providerId: p.provider_id, name: p.provider_name, logoPath: p.logo_path, priority: p.display_priority })),
     );
-    if (providerRows.length) await db.insert(schema.filmProviders).values(providerRows).onConflictDoNothing();
+    if (providerRows.length) statements.push(db.insert(schema.filmProviders).values(providerRows).onConflictDoNothing());
 
-    const cast = [...detail.credits.cast].sort((a, b) => a.order - b.order).slice(0, 8);
-    cast.forEach((c, position) =>
-      credits.push({ filmId, tmdbPersonId: c.id, role: "cast", character: c.character?.trim() || null, position }),
-    );
-    detail.credits.crew
-      .filter((c) => c.job === "Director")
-      .slice(0, 2)
-      .forEach((c, position) => credits.push({ filmId, tmdbPersonId: c.id, role: "director", character: null, position }));
+    const cast = [...detail.credits.cast].sort((a, b) => a.order - b.order).slice(0, CAST_PER_FILM);
+    const seen = new Set<number>();
+    cast.forEach((c, position) => {
+      if (seen.has(c.id)) return; // the same actor billed twice (two roles)
+      seen.add(c.id);
+      remember(c);
+      credits.push({ filmId, tmdbPersonId: c.id, role: "cast", character: c.character?.trim() || null, position });
+    });
+    [...new Map(directors.map((d) => [d.id, d])).values()].slice(0, 2).forEach((c, position) => {
+      remember(c);
+      credits.push({ filmId, tmdbPersonId: c.id, role: "director", character: null, position });
+    });
 
     imported.push({ id: filmId, slug, title, tmdbRating: values.tmdbRating, tmdbVotes: detail.vote_count });
   }
 
-  const nowPlaying = await db
-    .select({ n: sql<number>`count(*)` })
+  await runBatched(db, statements);
+  const [counts] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      nowPlaying: sql<number>`sum(case when ${schema.films.nowPlaying} then 1 else 0 end)`,
+    })
     .from(schema.films)
-    .where(and(eq(schema.films.nowPlaying, true), isNotNull(schema.films.tmdbId)));
-  log(`Imported ${imported.length} films (${skipped} skipped, ${nowPlaying[0]?.n ?? 0} in Nigerian cinemas now).`);
+    .where(eq(schema.films.status, "published"));
+  log(`Imported ${imported.length} films (${counts?.nowPlaying ?? 0} in Nigerian cinemas now, ${counts?.total ?? 0} published in total).`);
 
   // Channels that posted our trailers join the YouTube directory (hand-checked entries keep their details).
   const trailerChannels = new Map<string, string>();
@@ -296,17 +376,34 @@ export async function importFromTmdb(
   const known = await db.select({ url: schema.channels.url, slug: schema.channels.slug }).from(schema.channels);
   const urls = new Set(known.map((c) => c.url));
   const slugs = new Set(known.map((c) => c.slug));
+  const channelInserts: Statement[] = [];
   for (const [url, name] of trailerChannels) {
     if (urls.has(url)) continue;
     const base = slugify(name) || "channel";
     let slug = base;
     for (let n = 2; slugs.has(slug); n++) slug = `${base}-${n}`;
     slugs.add(slug);
-    await db.insert(schema.channels).values({ url, name, slug, kind: "trailers" }).onConflictDoNothing();
+    channelInserts.push(db.insert(schema.channels).values({ url, name, slug, kind: "trailers" }).onConflictDoNothing());
   }
+  await runBatched(db, channelInserts);
   log(`YouTube: ${trailerChannels.size} trailer channels.`);
 
-  log(`Fetching cast and director profiles …`);
-  await importPeople(db, tmdb, credits, log);
+  // 7. People: everyone credited gets a page; the collection gets full profiles and a rank.
+  const nollywoodFilms = new Set([...details.values()].filter(isNollywood).map((d) => byTmdb.get(d.id)!.id));
+  const filmsPerPerson = new Map<number, number>();
+  for (const c of credits) {
+    if (c.role === "cast" && nollywoodFilms.has(c.filmId)) filmsPerPerson.set(c.tmdbPersonId, (filmsPerPerson.get(c.tmdbPersonId) ?? 0) + 1);
+  }
+  const ranked = actorIds
+    .filter((id) => profiles.get(id)?.known_for_department === "Acting")
+    .sort(
+      (a, b) =>
+        (filmsPerPerson.get(b) ?? 0) - (filmsPerPerson.get(a) ?? 0) || (profiles.get(b)!.popularity ?? 0) - (profiles.get(a)!.popularity ?? 0),
+    )
+    .slice(0, collectionSize);
+  const rankOf = new Map(ranked.map((id, i) => [id, i + 1]));
+  const featured = [...new Set([...ranked, ...directorIds])].map((id) => profiles.get(id)).filter((p): p is TmdbPerson => Boolean(p));
+
+  await importPeople(db, { credits, lightPeople, featured, rankOf, log });
   return imported;
 }

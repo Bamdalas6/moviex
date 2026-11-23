@@ -3,7 +3,7 @@ import { CHANNELS } from "../src/server/db/channel-data";
 import { CINEMA_BRANCHES } from "../src/server/db/cinema-data";
 import { FEATURED_FILMS } from "../src/server/tmdb/featured";
 import { importFromTmdb } from "../src/server/tmdb/import";
-import { client, db, schema } from "./db";
+import { client, db, ready, schema } from "./db";
 
 /**
  * Refreshes films, posters, streaming availability and the "in cinemas now"
@@ -16,6 +16,8 @@ async function main() {
     console.error("TMDB_API_KEY is not set. Add it to .env.local (https://www.themoviedb.org/settings/api).");
     process.exit(1);
   }
+
+  await ready();
 
   // Hand-checked channels first, so trailer channels with the same URL keep these details.
   for (const [priority, c] of CHANNELS.entries()) {

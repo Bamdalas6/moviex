@@ -103,6 +103,7 @@ export const films = sqliteTable(
     uniqueIndex("films_tmdb_idx").on(t.tmdbId),
     index("films_status_idx").on(t.status),
     index("films_uploader_idx").on(t.uploadedById),
+    index("films_trailer_channel_idx").on(t.trailerChannelUrl),
   ],
 );
 
@@ -263,11 +264,20 @@ export const people = sqliteTable(
     website: text("website"),
     imdbId: text("imdb_id"),
     popularity: real("popularity").notNull().default(0),
+    /** TMDB gender: 1 female, 2 male, 3 non-binary, 0 unknown. */
+    gender: integer("gender").notNull().default(0),
+    /** Position in the Nollywood collection (most Nigerian films first); null = not in it. */
+    rank: integer("rank"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
       .notNull()
       .default(sql`(unixepoch() * 1000)`),
   },
-  (t) => [uniqueIndex("people_tmdb_idx").on(t.tmdbId), uniqueIndex("people_slug_idx").on(t.slug), index("people_name_idx").on(t.name)],
+  (t) => [
+    uniqueIndex("people_tmdb_idx").on(t.tmdbId),
+    uniqueIndex("people_slug_idx").on(t.slug),
+    index("people_name_idx").on(t.name),
+    index("people_rank_idx").on(t.rank),
+  ],
 );
 
 export const filmPeople = sqliteTable(
