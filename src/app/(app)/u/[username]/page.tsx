@@ -293,12 +293,12 @@ export default async function ProfilePage({ params, searchParams }: { params: Pa
             </Link>
           )}
 
-          <form action={logout} className="border-t border-line">
-            <button type="submit" className="flex w-full items-center gap-3 px-4 py-2.5 text-accent">
-              <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-field">
-                <Icon name="logout" size={18} />
-              </span>
-              <span className="flex-1 text-left text-[15px] font-semibold">Log out</span>
+          <form action={logout} className="border-t border-line p-4">
+            <button
+              type="submit"
+              className="ripple flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#e11d48] text-[15px] font-semibold text-white shadow-[0_8px_20px_rgb(225_29_72/0.3)] transition hover:-translate-y-px hover:bg-[#be123c] active:scale-[0.98]"
+            >
+              <Icon name="logout" size={18} /> Sign out
             </button>
           </form>
         </section>

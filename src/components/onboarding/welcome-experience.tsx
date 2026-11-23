@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { WELCOMED_COOKIE } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
 
 export type RunwayPoster = { src: string; title: string };
@@ -34,9 +35,16 @@ function AppIcon({ size, glyph, className }: { size: number; glyph: number; clas
  * 3. Runway: real posters stream down a tilted 3D plane from a vanishing point,
  *    fading into black behind the copy, on a loop.
  * Tap the splash to skip; reduced-motion visitors get the final screen at once.
+ *
+ * As a page (/welcome) "Just browsing" goes home. With `onBrowse` it is a
+ * dialog over the current page: "Just browsing" or Escape fades it away.
+ * Either way it remembers (cookie) that this visitor has seen it.
  */
-export function WelcomeExperience({ posters }: { posters: RunwayPoster[] }) {
+export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster[]; onBrowse?: () => void }) {
   const [phase, setPhase] = useState<Phase>("splash");
+  const [leaving, setLeaving] = useState(false);
+  const overlay = Boolean(onBrowse);
+  const Copy = overlay ? "div" : "main";
   const splashRef = useRef<HTMLDivElement>(null);
   const glyphRef = useRef<HTMLSpanElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
@@ -79,6 +87,38 @@ export function WelcomeExperience({ posters }: { posters: RunwayPoster[] }) {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // Seen once is enough: Home won't show it again on this device.
+  useEffect(() => {
+    document.cookie = `${WELCOMED_COOKIE}=1; Max-Age=31536000; Path=/; SameSite=Lax`;
+  }, []);
+
+  const close = () => {
+    if (!onBrowse || leaving) return;
+    setLeaving(true);
+    window.setTimeout(onBrowse, 350);
+  };
+  // Escape calls the latest close() without re-binding the listener every render.
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
+  });
+
+  // As a dialog: lock the page behind it and let Escape close it.
+  useEffect(() => {
+    if (!overlay) return;
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      root.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [overlay]);
+
   const shown = phase !== "splash";
   // Two copies of the list: the track scrolls by exactly one copy, then repeats.
   const tiles = [...posters, ...posters];
@@ -86,7 +126,17 @@ export function WelcomeExperience({ posters }: { posters: RunwayPoster[] }) {
     cn("transition-[opacity,transform] duration-700 ease-out", shown ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0", delay);
 
   return (
-    <div className="fixed inset-0 z-[70] overflow-hidden bg-black text-white" style={{ colorScheme: "dark" }}>
+    <div
+      role={overlay ? "dialog" : undefined}
+      data-onboarding-open={overlay && !leaving ? "" : undefined}
+      aria-modal={overlay || undefined}
+      aria-label={overlay ? "Welcome to Marquee" : undefined}
+      className={cn(
+        "fixed inset-0 z-[70] overflow-hidden bg-black text-white transition-[opacity,transform] duration-300 ease-out",
+        leaving && "pointer-events-none scale-[1.03] opacity-0",
+      )}
+      style={{ colorScheme: "dark" }}
+    >
       {/* Poster runway */}
       <div
         aria-hidden="true"
@@ -132,7 +182,11 @@ export function WelcomeExperience({ posters }: { posters: RunwayPoster[] }) {
       />
 
       {/* Welcome copy */}
-      <main id="main" className="absolute inset-x-0 bottom-0 flex flex-col items-center px-7 pb-[max(2rem,env(safe-area-inset-bottom))] text-center">
+      {/* A page owns <main>; as a dialog over Home, Home's own <main> stays the page's main landmark. */}
+      <Copy
+        id={overlay ? undefined : "main"}
+        className="absolute inset-x-0 bottom-0 flex flex-col items-center px-7 pb-[max(2rem,env(safe-area-inset-bottom))] text-center"
+      >
         <div ref={iconRef} className={cn("mb-5", phase === "ready" ? "opacity-100" : "opacity-0")}>
           <AppIcon size={76} glyph={38} />
         </div>
@@ -153,11 +207,17 @@ export function WelcomeExperience({ posters }: { posters: RunwayPoster[] }) {
           >
             Log in
           </Link>
-          <Link href="/" className="mt-1 py-2 text-[14px] font-medium text-white/60 underline-offset-4 hover:text-white hover:underline">
-            Just browsing
-          </Link>
+          {overlay ? (
+            <button type="button" onClick={close} className="mt-1 py-2 text-[14px] font-medium text-white/60 underline-offset-4 hover:text-white hover:underline">
+              Just browsing
+            </button>
+          ) : (
+            <Link href="/" className="mt-1 py-2 text-[14px] font-medium text-white/60 underline-offset-4 hover:text-white hover:underline">
+              Just browsing
+            </Link>
+          )}
         </div>
-      </main>
+      </Copy>
 
       {/* Splash: full screen, then morphs into the icon above */}
       {phase !== "ready" && (

@@ -309,6 +309,10 @@
 }
 
 /* Scroll-driven effects (no JavaScript; browsers without support simply skip them). */
+body:has([data-onboarding-open]) [data-app-chrome] {
+  visibility: hidden;
+}
+
 .runway-track {
   animation: runway-scroll 48s linear infinite;
   will-change: transform;

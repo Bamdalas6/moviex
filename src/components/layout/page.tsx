@@ -64,16 +64,17 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <div data-reveal="left" className={cn("flex items-end justify-between gap-3", className)}>
-      <div>
-        <h2 className="text-[22px] leading-tight font-bold tracking-[-0.4px]">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-[14px] text-sub">{subtitle}</p>}
-      </div>
-      {href && (
-        <Link href={href} className="shrink-0 text-[14px] font-semibold underline underline-offset-4 hover:text-sub">
+    // The link shares the title's line (baseline-aligned); the subtitle runs full width underneath.
+    <div data-reveal="left" className={cn("grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3", className)}>
+      <h2 className="text-[22px] leading-tight font-bold tracking-[-0.4px]">{title}</h2>
+      {href ? (
+        <Link href={href} className="shrink-0 text-[14px] font-semibold whitespace-nowrap underline underline-offset-4 hover:text-sub">
           {linkLabel}
         </Link>
+      ) : (
+        <span />
       )}
+      {subtitle && <p className="col-span-2 mt-0.5 text-[14px] text-sub">{subtitle}</p>}
     </div>
   );
 }

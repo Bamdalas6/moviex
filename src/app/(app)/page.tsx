@@ -1,4 +1,6 @@
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { FirstVisitWelcome } from "@/components/onboarding/first-visit-welcome";
 import { CategoryBar } from "@/components/film/category-bar";
 import { FilmCard, FilmRail } from "@/components/film/film-row";
 import { SearchPill } from "@/components/film/search-pill";
@@ -13,6 +15,7 @@ import { formatNumber } from "@/lib/utils";
 import { getCurrentUser } from "@/server/auth/session";
 import { listFilms, ratingActivity, savedFilmIds } from "@/server/queries/films";
 import { reviewFeed } from "@/server/queries/reviews";
+import { isCrawler, runwayPosters, WELCOMED_COOKIE } from "@/server/queries/onboarding";
 import { listChannels, popularPeople } from "@/server/queries/people";
 import { ChannelCard, PersonCard } from "@/components/people/people-ui";
 
@@ -42,12 +45,18 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
   ]);
   const [channels, faces] = genre ? [[], []] : await Promise.all([listChannels().then((all) => all.filter((c) => c.featured).slice(0, 6)), popularPeople(12)]);
 
+  // First visit, signed out: play the onboarding over Home (never for crawlers, so Home is what gets indexed).
+  const [cookieStore, headerList] = await Promise.all([cookies(), headers()]);
+  const firstVisit = !user && !cookieStore.has(WELCOMED_COOKIE) && !isCrawler(headerList.get("user-agent"));
+  const welcomePosters = firstVisit ? await runwayPosters() : [];
+
   const ctx = { savedIds, signedIn: Boolean(user), returnTo: genre ? `/?genre=${genre}` : "/" };
   const label = genre ? genre.toLowerCase() : null;
   const nothing = genre && !topRated.length && !everything.length;
 
   return (
     <PageShell wide className="gap-10 md:gap-12">
+      {firstVisit && <FirstVisitWelcome posters={welcomePosters} />}
       <div className="flex flex-col gap-6">
         <SearchPill className="mx-auto w-full max-w-2xl" keep={{ genre }} />
         <CategoryBar active={genre} hrefFor={(g) => (g ? `/?genre=${g}` : "/")} className="md:flex md:justify-center" />
