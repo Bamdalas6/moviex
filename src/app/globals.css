@@ -14,7 +14,8 @@
   --field: #f7f7f7;
   --line: #ebebeb;
   --card-line: #dddddd;
-  --cta: #1d3cf5;
+  /* Brand: the orange of the logo's eye (#FF7700), a touch deeper so white text and links read well. */
+  --cta: #e06400;
   --accent: #c13515;
   --idle: #d0d0d0;
   --off: #dddddd;
@@ -33,7 +34,7 @@
     --field: #232328;
     --line: #2a2a2f;
     --card-line: #3a3a40;
-    --cta: #4b63ff;
+    --cta: #f06e00;
     --accent: #ff6b5e;
     --idle: #4a4a52;
     --off: #3a3a40;
@@ -52,7 +53,7 @@
   --field: #232328;
   --line: #2a2a2f;
   --card-line: #3a3a40;
-  --cta: #4b63ff;
+  --cta: #f06e00;
   --accent: #ff6b5e;
   --idle: #4a4a52;
   --off: #3a3a40;

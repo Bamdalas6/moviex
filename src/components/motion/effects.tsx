@@ -40,7 +40,7 @@ export function Tilt({ children, className, max = 10 }: { children: ReactNode; c
   );
 }
 
-const BURST_COLORS = ["#F43F5E", "#FFB020", "#4B63FF", "#13A574", "#E85A8C", "#ffffff"];
+const BURST_COLORS = ["#F43F5E", "#FFB020", "#FF7700", "#13A574", "#E85A8C", "#ffffff"];
 
 /** A ring of particles that flies out once every time `trigger` changes (skip 0). */
 export function Burst({ trigger, colors = BURST_COLORS, count = 8 }: { trigger: number; colors?: string[]; count?: number }) {
@@ -58,7 +58,7 @@ export function Burst({ trigger, colors = BURST_COLORS, count = 8 }: { trigger: 
   );
 }
 
-const CONFETTI_COLORS = ["#1d3cf5", "#F43F5E", "#FFB020", "#13A574", "#E85A8C", "#4B63FF", "#E9C46A"];
+const CONFETTI_COLORS = ["#FF7700", "#F43F5E", "#FFB020", "#13A574", "#E85A8C", "#FF9A3D", "#E9C46A"];
 
 /** Full-screen confetti shower, rendered once on mount (e.g. after posting a review). */
 export function Confetti({ pieces = 90 }: { pieces?: number }) {

@@ -45,7 +45,7 @@ export function PosterWall({ posters }: { posters: RunwayPoster[] }) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(42% 60% at 50% 50%, rgb(0 0 0 / 0.93), rgb(0 0 0 / 0.8) 60%, rgb(0 0 0 / 0.66)), radial-gradient(40% 30% at 50% 0%, rgb(29 60 245 / 0.22), transparent)",
+            "radial-gradient(42% 60% at 50% 50%, rgb(0 0 0 / 0.93), rgb(0 0 0 / 0.8) 60%, rgb(0 0 0 / 0.66)), radial-gradient(40% 30% at 50% 0%, rgb(255 119 0 / 0.16), transparent)",
         }}
       />
     </div>

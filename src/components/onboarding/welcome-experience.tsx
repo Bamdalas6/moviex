@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Icon } from "@/components/icons";
 import { WELCOMED_COOKIE } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
+import { EyeGlyph, EyeMark } from "@/components/brand/eye-mark";
 
 export type RunwayPoster = { src: string; title: string };
 
@@ -13,16 +13,15 @@ type Phase = "splash" | "morph" | "ready";
 
 const SPLASH_MS = 1300;
 const MORPH_MS = 850;
+/** Width of the eye on the splash; it shrinks to 55% of the icon as the splash becomes the icon. */
+const SPLASH_EYE = 110;
 const EASE = "cubic-bezier(0.7, 0, 0.2, 1)";
 
-/** The Marquee app icon: blue rounded square with the ticket glyph. */
-function AppIcon({ size, glyph, className }: { size: number; glyph: number; className?: string }) {
+/** The app icon: the orange eye from the Watch Nollywood logo. */
+function AppIcon({ size, className }: { size: number; className?: string }) {
   return (
-    <span
-      className={cn("flex items-center justify-center rounded-[22px] text-white shadow-[0_12px_32px_rgb(29_60_245/0.45)]", className)}
-      style={{ width: size, height: size, background: "linear-gradient(150deg, #5b74ff 0%, #1d3cf5 55%, #0f22b8 100%)" }}
-    >
-      <Icon name="ticket" size={glyph} strokeWidth={2.3} />
+    <span className={cn("block rounded-full shadow-[0_12px_32px_rgb(255_119_0/0.45)]", className)} style={{ width: size, height: size }}>
+      <EyeMark size={size} />
     </span>
   );
 }
@@ -64,11 +63,11 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
     const anim = splash.animate(
       [
         { top: "0px", left: "0px", width: `${window.innerWidth}px`, height: `${window.innerHeight}px`, borderRadius: "0px" },
-        { top: `${to.top}px`, left: `${to.left}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: "22px" },
+        { top: `${to.top}px`, left: `${to.left}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: "50%" },
       ],
       { duration: MORPH_MS, easing: EASE, fill: "forwards" },
     );
-    glyphRef.current?.animate([{ transform: "scale(1)" }, { transform: `scale(${(to.width * 0.5) / 96})` }], {
+    glyphRef.current?.animate([{ transform: "scale(1)" }, { transform: `scale(${(to.width * 0.55) / SPLASH_EYE})` }], {
       duration: MORPH_MS,
       easing: EASE,
       fill: "forwards",
@@ -177,7 +176,7 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
         className={cn("pointer-events-none absolute inset-x-0 bottom-0 h-[58%] transition-opacity duration-1000", shown ? "opacity-100" : "opacity-0")}
         style={{
           background:
-            "radial-gradient(55% 40% at 50% 30%, rgb(29 60 245 / 0.3), transparent 70%), linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.75) 28%, #000 48%)",
+            "radial-gradient(55% 40% at 50% 30%, rgb(255 119 0 / 0.26), transparent 70%), linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 0.75) 28%, #000 48%)",
         }}
       />
 
@@ -188,7 +187,7 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
         className="absolute inset-x-0 bottom-0 flex flex-col items-center px-7 pb-[max(2rem,env(safe-area-inset-bottom))] text-center"
       >
         <div ref={iconRef} className={cn("mb-5", phase === "ready" ? "opacity-100" : "opacity-0")}>
-          <AppIcon size={76} glyph={38} />
+          <AppIcon size={76} />
         </div>
         <h1 className={cn("text-[30px] leading-tight font-bold tracking-[-0.6px] md:text-[34px]", rise("delay-150"))}>Welcome to Marquee.</h1>
         <p className={cn("mt-3 max-w-[330px] text-[15.5px] leading-relaxed text-white/70", rise("delay-250"))}>
@@ -226,11 +225,11 @@ export function WelcomeExperience({ posters, onBrowse }: { posters: RunwayPoster
           role="presentation"
           onClick={morph}
           className="fixed top-0 left-0 z-10 flex h-dvh w-screen cursor-pointer items-center justify-center overflow-hidden"
-          style={{ background: "linear-gradient(170deg, #5b74ff 0%, #1d3cf5 45%, #0f22b8 100%)" }}
+          style={{ background: "linear-gradient(170deg, #ff9a3d 0%, #ff7700 45%, #c85400 100%)" }}
         >
           <span ref={glyphRef} className="flex items-center justify-center text-white">
             <span className={phase === "splash" ? "splash-breathe" : undefined}>
-              <Icon name="ticket" size={96} strokeWidth={2.1} />
+              <EyeGlyph width={SPLASH_EYE} />
             </span>
           </span>
           <span className="sr-only">Marquee</span>

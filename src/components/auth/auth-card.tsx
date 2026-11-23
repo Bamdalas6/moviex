@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Icon } from "@/components/icons";
+import { EyeMark } from "@/components/brand/eye-mark";
 
 /**
  * The login / sign-up card: app icon, a centred title and one line of copy,
@@ -16,16 +16,15 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -inset-px -z-10 rounded-[29px] opacity-80 blur-2xl"
-        style={{ background: "radial-gradient(60% 50% at 50% 0%, rgb(75 99 255 / 0.45), transparent 70%)" }}
+        style={{ background: "radial-gradient(60% 50% at 50% 0%, rgb(255 119 0 / 0.35), transparent 70%)" }}
       />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
       <div className="flex flex-col items-center text-center">
         <span
-          className="flex size-10 items-center justify-center rounded-[13px] md:size-11 md:rounded-[14px] text-white shadow-[0_10px_28px_rgb(29_60_245/0.45)]"
-          style={{ background: "linear-gradient(150deg, #5b74ff 0%, #1d3cf5 55%, #0f22b8 100%)" }}
+          className="flex size-10 items-center justify-center rounded-full md:size-11 text-white shadow-[0_10px_28px_rgb(255_119_0/0.4)]"
         >
-          <Icon name="ticket" size={22} strokeWidth={2.3} />
+          <EyeMark size={44} className="size-full" />
         </span>
         <h1 className="mt-3 text-[23px] leading-tight font-bold tracking-[-0.5px]">{title}</h1>
         <p className="mt-1 max-w-[340px] text-[14px] leading-snug text-sub [@media(max-height:700px)]:hidden">{subtitle}</p>
