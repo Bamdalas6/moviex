@@ -100,9 +100,13 @@ const GENRE_MAP: Record<string, (typeof GENRES)[number]> = {
 
 /** Which industry a film belongs to, or null when it isn't African cinema. */
 export function industryFor(detail: Pick<TmdbMovieDetail, "original_language" | "origin_country" | "production_countries">) {
-  const countries = new Set([...(detail.origin_country ?? []), ...detail.production_countries.map((c) => c.iso_3166_1)]);
+  const production = detail.production_countries.map((c) => c.iso_3166_1);
+  const countries = new Set([...(detail.origin_country ?? []), ...production]);
   const lang = detail.original_language;
-  if (countries.has("NG") || ["yo", "ig", "ha"].includes(lang)) return lang === "ha" ? "Kannywood" : "Nollywood";
+  // Nigeria as one of five or more co-producers is an international production with a Nigerian part
+  // (e.g. ABCs of Death 2, an 11-country anthology with one Nigerian segment), not a Nollywood film.
+  const nigerian = (detail.origin_country ?? []).includes("NG") || (production.includes("NG") && production.length < 5);
+  if (nigerian || ["yo", "ig", "ha"].includes(lang)) return lang === "ha" ? "Kannywood" : "Nollywood";
   if (countries.has("GH") || lang === "tw" || lang === "ak") return "Ghana";
   if (countries.has("KE")) return "Kenya";
   if (countries.has("ZA")) return "South Africa";

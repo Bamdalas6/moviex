@@ -21,6 +21,15 @@ describe("industryFor", () => {
     expect(industryFor(film(["SN"], [], "fr"))).toBe("Francophone");
   });
 
+  it("keeps Nigerian co-productions but not big international ones with a Nigerian part", () => {
+    // TMDB often lists the US as origin for Nollywood films; the production country is what counts.
+    expect(industryFor(film(["US"], ["NG"]))).toBe("Nollywood");
+    expect(industryFor(film(["US"], ["DE", "NG", "ZA", "US"]))).toBe("Nollywood"); // e.g. Vagabond Queen of Lagos
+    // ABCs of Death 2: an 11-country anthology with one Nigerian segment.
+    expect(industryFor(film(["CA", "NZ", "US"], ["BR", "CA", "CU", "FR", "JP", "LT", "NZ", "NG", "PH", "ES", "US"]))).not.toBe("Nollywood");
+    expect(industryFor(film(["US"], ["IT", "GB", "US", "DE", "NG"]))).not.toBe("Nollywood");
+  });
+
   it("rejects non-African films (e.g. Hollywood titles on the Nigerian now-showing list)", () => {
     expect(industryFor(film(["US"], ["US"]))).toBeNull();
     expect(industryFor(film(["FR"], ["FR"], "fr"))).toBeNull();
