@@ -190,6 +190,21 @@
   to { transform: translateY(48px) scale(0.94); opacity: 0.55; }
 }
 
+/* Onboarding: posters stream down a tilted runway (the track holds the list twice, so -50% → 0 loops seamlessly). */
+@keyframes runway-scroll {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0); }
+}
+/* First arrival: the runway rolls in from the vanishing point. */
+@keyframes runway-in {
+  from { opacity: 0; transform: translateY(-18%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes splash-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
 @utility animate-page-in {
   animation: page-in 0.4s var(--ease-out) both;
 }
@@ -294,6 +309,17 @@
 }
 
 /* Scroll-driven effects (no JavaScript; browsers without support simply skip them). */
+.runway-track {
+  animation: runway-scroll 48s linear infinite;
+  will-change: transform;
+}
+.runway-in {
+  animation: runway-in 1.6s var(--ease-out) both;
+}
+.splash-breathe {
+  animation: splash-breathe 1.8s ease-in-out infinite;
+}
+
 .scroll-progress {
   position: fixed;
   inset: 0 0 auto 0;
@@ -327,6 +353,11 @@
   .confetti-piece,
   .burst-dot {
     display: none;
+  }
+  .runway-track,
+  .runway-in,
+  .splash-breathe {
+    animation: none;
   }
 }
 
